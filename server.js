@@ -42,7 +42,27 @@ async function initDB() {
       barangDesc TEXT, barangBerat TEXT, barangKoli TEXT, barangCatatan TEXT,
       tanggal TEXT,
       createdById INTEGER,
-      createdByNama TEXT
+      createdByNama TEXT,
+      status TEXT DEFAULT 'pending'
+    );
+    CREATE TABLE IF NOT EXISTS resi_tracking (
+      id INTEGER PRIMARY KEY,
+      resiId INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      keterangan TEXT,
+      lokasi TEXT,
+      waktu TEXT,
+      updatedById INTEGER,
+      updatedByNama TEXT
+    );
+    CREATE TABLE IF NOT EXISTS resi_history (
+      id INTEGER PRIMARY KEY,
+      resiId INTEGER NOT NULL,
+      aksi TEXT NOT NULL,
+      detail TEXT,
+      waktu TEXT,
+      userId INTEGER,
+      userNama TEXT
     );
   `);
 
@@ -56,6 +76,9 @@ async function initDB() {
       [1, 'admin', hash('admin123'), 'Administrator', new Date().toLocaleString('id-ID')]);
     console.log('  👤 Akun admin dibuat: username=admin  password=admin123');
   }
+
+  // Tambah kolom status kalau belum ada (upgrade dari versi lama)
+  try { db.run("ALTER TABLE resi ADD COLUMN status TEXT DEFAULT 'pending'"); saveDB(); } catch(e) {}
 
   // Migrasi dari JSON lama
   const DATA_FILE = path.join(__dirname, 'data.json');
@@ -294,6 +317,10 @@ async function startServer() {
          b.terimaNama??resi.terimaNama, b.terimaAlamat??resi.terimaAlamat, b.terimaHp??resi.terimaHp,
          b.barangDesc??resi.barangDesc, b.barangBerat??resi.barangBerat,
          b.barangKoli??resi.barangKoli, b.barangCatatan??resi.barangCatatan, id]);
+      // Catat history edit
+      const waktuEdit = new Date().toLocaleString('id-ID');
+      run(`INSERT INTO resi_history (id,resiId,aksi,detail,waktu,userId,userNama) VALUES (?,?,?,?,?,?,?)`,
+        [Date.now(), id, 'Data diubah', 'Data resi diperbarui', waktuEdit, me.id, me.nama]);
       return json(res, 200, { ok: true });
     }
 
@@ -304,6 +331,101 @@ async function startServer() {
       const id = parseInt(pathname.split('/')[3]);
       if (me.role !== 'admin') return json(res, 403, { ok: false, msg: 'Hanya admin yang bisa menghapus resi' });
       run('DELETE FROM resi WHERE id = ?', [id]);
+      return json(res, 200, { ok: true });
+    }
+
+    // GET /api/resi/:id/tracking
+    if (req.method === 'GET' && pathname.match(/^\/api\/resi\/\d+\/tracking$/)) {
+      const me = getSession(req);
+      if (!me) return json(res, 401, { ok: false });
+      const id = parseInt(pathname.split('/')[3]);
+      const tracking = queryAll('SELECT * FROM resi_tracking WHERE resiId = ? ORDER BY id ASC', [id]);
+      const history = queryAll('SELECT * FROM resi_history WHERE resiId = ? ORDER BY id ASC', [id]);
+      return json(res, 200, { tracking, history });
+    }
+
+    // POST /api/resi/:id/tracking — update status
+    if (req.method === 'POST' && pathname.match(/^\/api\/resi\/\d+\/tracking$/)) {
+      const me = getSession(req);
+      if (!me) return json(res, 401, { ok: false });
+      const id = parseInt(pathname.split('/')[3]);
+      const resi = queryOne('SELECT * FROM resi WHERE id = ?', [id]);
+      if (!resi) return json(res, 404, { ok: false });
+      // Pembuat resi atau admin bisa tambah timeline
+      if (me.role !== 'admin' && resi.createdById !== me.id)
+        return json(res, 403, { ok: false, msg: 'Hanya pembuat resi atau admin yang bisa update timeline' });
+      const b = await bodyJSON(req);
+      const waktu = new Date().toLocaleString('id-ID');
+      const trackId = Date.now();
+
+      // Kalau admin: bisa ubah status badge juga
+      // Kalau user biasa (pembuat): hanya tambah keterangan di timeline, status badge tidak berubah
+      const isAdmin = me.role === 'admin';
+      const statusToSave = isAdmin ? (b.status || resi.status || 'pending') : (resi.status || 'pending');
+
+      run(`INSERT INTO resi_tracking (id,resiId,status,keterangan,lokasi,waktu,updatedById,updatedByNama)
+           VALUES (?,?,?,?,?,?,?,?)`,
+        [trackId, id, statusToSave, b.keterangan||'', b.lokasi||'', waktu, me.id, me.nama]);
+
+      // Hanya admin yang bisa ubah status badge resi
+      if (isAdmin) {
+        run('UPDATE resi SET status = ? WHERE id = ?', [b.status, id]);
+      }
+
+      // Catat di history
+      run(`INSERT INTO resi_history (id,resiId,aksi,detail,waktu,userId,userNama) VALUES (?,?,?,?,?,?,?)`,
+        [trackId+1, id, isAdmin ? 'Status diupdate' : 'Keterangan ditambahkan',
+         isAdmin ? 'Status: ' + b.status + (b.keterangan ? ' - ' + b.keterangan : '') : (b.keterangan || ''),
+         waktu, me.id, me.nama]);
+      saveDB();
+      return json(res, 201, { ok: true });
+    }
+
+    // PUT /api/tracking/:trackId — edit timeline entry
+    if (req.method === 'PUT' && pathname.match(/^\/api\/tracking\/\d+$/)) {
+      const me = getSession(req);
+      if (!me) return json(res, 401, { ok: false });
+      const trackId = parseInt(pathname.split('/')[3]);
+      const track = queryOne('SELECT * FROM resi_tracking WHERE id = ?', [trackId]);
+      if (!track) return json(res, 404, { ok: false });
+      const resi = queryOne('SELECT * FROM resi WHERE id = ?', [track.resiId]);
+      if (!resi) return json(res, 404, { ok: false });
+      if (me.role !== 'admin' && resi.createdById !== me.id)
+        return json(res, 403, { ok: false, msg: 'Tidak punya akses' });
+      const b = await bodyJSON(req);
+      const isAdmin = me.role === 'admin';
+      if (isAdmin && b.status) {
+        run('UPDATE resi_tracking SET status=?,keterangan=?,lokasi=? WHERE id=?',
+          [b.status, b.keterangan||track.keterangan, b.lokasi||track.lokasi, trackId]);
+        // Update status badge resi jika ini entry terakhir
+        const lastTrack = queryOne('SELECT * FROM resi_tracking WHERE resiId=? ORDER BY id DESC LIMIT 1', [track.resiId]);
+        if (lastTrack && lastTrack.id === trackId) {
+          run('UPDATE resi SET status=? WHERE id=?', [b.status, track.resiId]);
+        }
+      } else {
+        run('UPDATE resi_tracking SET keterangan=?,lokasi=? WHERE id=?',
+          [b.keterangan||track.keterangan, b.lokasi||track.lokasi, trackId]);
+      }
+      saveDB();
+      return json(res, 200, { ok: true });
+    }
+
+    // DELETE /api/tracking/:trackId — hapus timeline entry
+    if (req.method === 'DELETE' && pathname.match(/^\/api\/tracking\/\d+$/)) {
+      const me = getSession(req);
+      if (!me) return json(res, 401, { ok: false });
+      const trackId = parseInt(pathname.split('/')[3]);
+      const track = queryOne('SELECT * FROM resi_tracking WHERE id = ?', [trackId]);
+      if (!track) return json(res, 404, { ok: false });
+      const resi = queryOne('SELECT * FROM resi WHERE id = ?', [track.resiId]);
+      if (!resi) return json(res, 404, { ok: false });
+      if (me.role !== 'admin' && resi.createdById !== me.id)
+        return json(res, 403, { ok: false, msg: 'Tidak punya akses' });
+      run('DELETE FROM resi_tracking WHERE id = ?', [trackId]);
+      // Update status badge ke entry terakhir yang tersisa
+      const lastTrack = queryOne('SELECT * FROM resi_tracking WHERE resiId=? ORDER BY id DESC LIMIT 1', [track.resiId]);
+      run('UPDATE resi SET status=? WHERE id=?', [lastTrack ? lastTrack.status : 'pending', track.resiId]);
+      saveDB();
       return json(res, 200, { ok: true });
     }
 

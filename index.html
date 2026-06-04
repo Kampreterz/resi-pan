@@ -166,6 +166,27 @@ body{font-family:'DM Sans',sans-serif;background:#f4f1ea;min-height:100vh;color:
   #modal-detail .modal-box{border:none;width:100%;max-width:100%}
   .modal-actions,.modal-close{display:none!important}
 }
+
+/* ── TRACKING ── */
+.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.status-pending{background:#f0f0f0;color:#555}
+.status-pickup{background:#fff3cd;color:#856404}
+.status-transit{background:#cce5ff;color:#004085}
+.status-out{background:#d4edff;color:#0056b3}
+.status-delivered{background:#d1f0d1;color:#1a6e1a}
+.status-failed{background:#ffd6d6;color:#a00}
+.timeline{padding:4px 0}
+.timeline-item{display:flex;gap:12px;margin-bottom:0;position:relative}
+.timeline-item:not(:last-child) .tl-line{position:absolute;left:10px;top:22px;width:2px;background:#ddd8cc;bottom:-8px}
+.tl-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1;margin-top:2px}
+.tl-dot-done{background:#1a1a2e;color:#e8d5a3}
+.tl-dot-active{background:#e8d5a3;color:#1a1a2e;box-shadow:0 0 0 3px rgba(232,213,163,.3)}
+.tl-dot-pending{background:#f0f0f0;color:#aaa;border:1.5px dashed #ccc}
+.tl-body{flex:1;padding-bottom:16px}
+.tl-status{font-size:13px;font-weight:500;color:#1a1a2e}
+.tl-status.inactive{color:#aaa}
+.tl-meta{font-size:11px;color:#6b6b85;margin-top:2px}
+.tl-keterangan{font-size:12px;color:#444;margin-top:3px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -591,13 +612,17 @@ function renderList() {
     return `<div class="resi-item" id="item-${r.id}" style="${checked ? 'border-color:#1a1a2e;background:#f8f6ff;' : ''}${missingKirim ? 'border-left:3px solid #e8c940;' : ''}">
       ${bulkMode ? `<input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleSelect(${r.id})" style="width:16px;height:16px;flex-shrink:0;margin-top:4px;cursor:pointer" />` : ''}
       <div style="flex:1;min-width:0;cursor:${bulkMode ? 'pointer' : 'default'}" ${bulkMode ? `onclick="toggleSelect(${r.id})"` : ''}>
-        <div class="resi-no">${r.noResi||'-'}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div class="resi-no" style="margin:0">${r.noResi||'-'}</div>
+          <span class="status-badge status-${r.status||'pending'}">${statusLabel(r.status)}</span>
+        </div>
         <div class="resi-names">${r.kirimNama ? r.kirimNama : '<span style=\"color:#c08000\">&#9888; Pengirim belum diisi</span>'} <span>&#8594;</span> ${r.terimaNama||'-'}</div>
         <div class="resi-meta"><span>${r.barangDesc||'-'}</span>${r.barangBerat ? '<span>'+r.barangBerat+'</span>' : ''}<span>${r.tanggal||''}</span></div>
         <div class="resi-by">Dibuat oleh: ${r.createdByNama||'-'}</div>
       </div>
       ${!bulkMode ? `<div class="item-actions">
         <button class="btn-sm btn-sm-view" onclick="openDetail(${r.id})">Detail</button>
+        <button class="btn-sm" style="background:#eef4ff;color:#1a4a9a;border-color:#c0d4f8" onclick="openTracking(${r.id})">Tracking</button>
         ${canEdit ? `<button class="btn-sm btn-sm-edit" onclick="openEdit(${r.id})">Edit</button>` : ''}
         ${canDelete ? `<button class="btn-sm btn-sm-del" onclick="hapusResi(${r.id})">Hapus</button>` : ''}
       </div>` : ''}
@@ -1023,6 +1048,222 @@ async function saveBulkEdit() {
   await loadResi();
 }
 
+
+// ── STATUS & TRACKING ─────────────────────────────────────────────────────────
+let currentTrackingResiId = null;
+
+function statusLabel(s) {
+  const map = { pending:'Pending', pickup:'Pickup', transit:'In Transit', out:'Out for Delivery', delivered:'Delivered', failed:'Failed' };
+  return map[s] || 'Pending';
+}
+
+function statusClass(s) {
+  return 'status-' + (s || 'pending');
+}
+
+async function openTracking(id) {
+  const resi = allResi.find(r => r.id === id);
+  if (!resi) return;
+  currentTrackingResiId = id;
+  document.getElementById('track-no').textContent = resi.noResi || '-';
+
+  const isAdmin = me && me.role === 'admin';
+  const isCreator = me && resi.createdById === me.id;
+  const trackForm = document.getElementById('track-form');
+  const statusRow = document.getElementById('track-status-row');
+
+  if (isAdmin || isCreator) {
+    trackForm.style.display = 'block';
+    // Dropdown status hanya untuk admin
+    if (statusRow) statusRow.style.display = isAdmin ? 'grid' : 'none';
+    document.getElementById('track-form-title').textContent = isAdmin
+      ? 'Update Status Pengiriman'
+      : 'Tambah Keterangan Timeline';
+  } else {
+    trackForm.style.display = 'none';
+  }
+
+  await loadTracking(id);
+  document.getElementById('modal-tracking').classList.add('show');
+}
+
+async function loadTracking(id) {
+  try {
+    const res = await fetch('/api/resi/' + id + '/tracking');
+    const data = await res.json();
+    renderTimeline(data.tracking);
+    renderHistory(data.history);
+  } catch { }
+}
+
+const ALL_STATUSES = ['pickup','transit','out','delivered'];
+
+function renderTimeline(tracking) {
+  const container = document.getElementById('tracking-timeline');
+  if (!tracking.length) {
+    container.innerHTML = '<div style="text-align:center;color:#aaa;font-size:13px;padding:12px 0">Belum ada update status</div>';
+    return;
+  }
+
+  const resi = allResi.find(r => r.id === currentTrackingResiId);
+  const isAdmin = me && me.role === 'admin';
+  const isCreator = me && resi && resi.createdById === me.id;
+  const canEdit = isAdmin || isCreator;
+
+  container.innerHTML = tracking.map((t, i) => {
+    const isLast = i === tracking.length - 1;
+    return `<div class="timeline-item" id="tl-item-${t.id}">
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center">
+        <div class="tl-dot ${isLast ? 'tl-dot-active' : 'tl-dot-done'}">${isLast ? '●' : '✓'}</div>
+        ${!isLast ? '<div style="width:2px;flex:1;background:#ddd8cc;min-height:20px;margin:3px 0"></div>' : ''}
+      </div>
+      <div class="tl-body">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="tl-status">${statusLabel(t.status)}</span>
+          <span class="status-badge ${statusClass(t.status)}">${statusLabel(t.status)}</span>
+          ${canEdit ? `<div style="margin-left:auto;display:flex;gap:4px">
+            <button onclick="editTrackingEntry(${t.id},'${t.status}',\`${(t.lokasi||'').replace(/`/g,"'")}\`,\`${(t.keterangan||'').replace(/`/g,"'")}\`)"
+              style="background:#eef4ff;border:0.5px solid #c0d4f8;border-radius:4px;color:#1a4a9a;padding:3px 8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Edit</button>
+            <button onclick="deleteTrackingEntry(${t.id})"
+              style="background:#fff0f0;border:0.5px solid #f0c0c0;border-radius:4px;color:#c04040;padding:3px 8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Hapus</button>
+          </div>` : ''}
+        </div>
+        ${t.lokasi ? `<div class="tl-meta">📍 ${t.lokasi}</div>` : ''}
+        ${t.keterangan ? `<div class="tl-keterangan">${t.keterangan}</div>` : ''}
+        <div class="tl-meta" style="margin-top:3px">🕐 ${t.waktu} · oleh ${t.updatedByNama}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderHistory(history) {
+  const container = document.getElementById('edit-history');
+  if (!history.length) {
+    container.innerHTML = '<div style="text-align:center;color:#aaa;font-size:13px">Belum ada riwayat perubahan</div>';
+    return;
+  }
+  container.innerHTML = history.map(h => `
+    <div style="display:flex;gap:10px;margin-bottom:10px;font-size:12px">
+      <div style="width:6px;height:6px;border-radius:50%;background:#a0a0c0;flex-shrink:0;margin-top:5px"></div>
+      <div>
+        <span style="font-weight:500;color:#1a1a2e">${h.aksi}</span>
+        ${h.detail ? `<span style="color:#6b6b85"> — ${h.detail}</span>` : ''}
+        <div style="color:#a0a0c0;margin-top:2px">${h.waktu} · ${h.userNama}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function submitTracking() {
+  const status = document.getElementById('track-status').value;
+  const lokasi = document.getElementById('track-lokasi').value.trim();
+  const keterangan = document.getElementById('track-keterangan').value.trim();
+  try {
+    const res = await fetch('/api/resi/' + currentTrackingResiId + '/tracking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, lokasi, keterangan })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('Status berhasil diupdate!');
+      document.getElementById('track-lokasi').value = '';
+      document.getElementById('track-keterangan').value = '';
+      await loadTracking(currentTrackingResiId);
+      await loadResi(); // refresh list untuk update badge
+    } else {
+      showToast(data.msg || 'Gagal update status');
+    }
+  } catch { showToast('Gagal terhubung ke server'); }
+}
+
+
+// ── EDIT & DELETE TRACKING ENTRY ─────────────────────────────────────────────
+let editingTrackId = null;
+
+function editTrackingEntry(trackId, status, lokasi, keterangan) {
+  editingTrackId = trackId;
+  const isAdmin = me && me.role === 'admin';
+  const statusRow = document.getElementById('track-status-row');
+  const formTitle = document.getElementById('track-form-title');
+
+  // Pre-fill form dengan data yang ada
+  if (isAdmin) {
+    document.getElementById('track-status').value = status;
+    if (statusRow) statusRow.style.display = 'grid';
+  } else {
+    if (statusRow) statusRow.style.display = 'none';
+  }
+  document.getElementById('track-lokasi').value = lokasi;
+  document.getElementById('track-keterangan').value = keterangan;
+  document.getElementById('track-form').style.display = 'block';
+  formTitle.textContent = 'Edit Entry Timeline';
+
+  // Ganti tombol submit jadi "Simpan Edit"
+  const btn = document.querySelector('[onclick="submitTracking()"]');
+  if (btn) {
+    btn.textContent = 'Simpan Edit';
+    btn.onclick = saveTrackingEdit;
+  }
+  // Scroll ke form
+  document.getElementById('track-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function saveTrackingEdit() {
+  if (!editingTrackId) return;
+  const isAdmin = me && me.role === 'admin';
+  const payload = {
+    keterangan: document.getElementById('track-keterangan').value.trim(),
+    lokasi: document.getElementById('track-lokasi').value.trim(),
+  };
+  if (isAdmin) payload.status = document.getElementById('track-status').value;
+
+  try {
+    const res = await fetch('/api/tracking/' + editingTrackId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('Entry berhasil diupdate!');
+      resetTrackForm();
+      await loadTracking(currentTrackingResiId);
+      await loadResi();
+    } else { showToast(data.msg || 'Gagal update'); }
+  } catch { showToast('Gagal terhubung ke server'); }
+}
+
+async function deleteTrackingEntry(trackId) {
+  if (!confirm('Hapus entry timeline ini?')) return;
+  try {
+    const res = await fetch('/api/tracking/' + trackId, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('Entry dihapus.');
+      await loadTracking(currentTrackingResiId);
+      await loadResi();
+    } else { showToast(data.msg || 'Gagal hapus'); }
+  } catch { showToast('Gagal terhubung ke server'); }
+}
+
+function resetTrackForm() {
+  editingTrackId = null;
+  document.getElementById('track-lokasi').value = '';
+  document.getElementById('track-keterangan').value = '';
+  const btn = document.querySelector('[onclick="saveTrackingEdit"]') ||
+    document.getElementById('track-form').querySelector('button:last-child');
+  if (btn) {
+    btn.textContent = 'Simpan';
+    btn.onclick = submitTracking;
+  }
+  const formTitle = document.getElementById('track-form-title');
+  if (formTitle) {
+    const isAdmin = me && me.role === 'admin';
+    formTitle.textContent = isAdmin ? 'Update Status Pengiriman' : 'Tambah Keterangan Timeline';
+  }
+}
+
 // Auto-login jika session masih aktif
 (async () => {
   try {
@@ -1054,6 +1295,55 @@ async function saveBulkEdit() {
     <div class="modal-actions">
       <button class="btn-modal-close" onclick="closeModal('modal-bulk')">Batal</button>
       <button class="btn-print" onclick="saveBulkEdit()">Simpan ke Semua Resi Dipilih</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TRACKING -->
+<div class="modal-overlay" id="modal-tracking">
+  <div class="modal-box" style="width:460px">
+    <div class="modal-top">
+      <span class="modal-top-title">History & Tracking</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="modal-top-no" id="track-no"></span>
+        <button class="modal-close" onclick="closeModal('modal-tracking')">Tutup</button>
+      </div>
+    </div>
+    <div class="modal-content" style="padding:16px">
+      <!-- Update status form -->
+      <div id="track-form" style="background:#f4f1ea;border-radius:10px;padding:12px;margin-bottom:16px;display:none">
+        <div id="track-form-title" style="font-size:12px;font-weight:500;color:#1a1a2e;margin-bottom:10px">Update Status Pengiriman</div>
+        <div id="track-status-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <label style="font-size:11px;color:#6b6b85;display:block;margin-bottom:3px">Status</label>
+            <select id="track-status" style="width:100%;padding:7px 10px;border:0.5px solid #ddd8cc;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;color:#1a1a2e;outline:none">
+              <option value="pickup">Pickup</option>
+              <option value="transit">In Transit</option>
+              <option value="out">Out for Delivery</option>
+              <option value="delivered">Delivered</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:#6b6b85;display:block;margin-bottom:3px">Lokasi</label>
+            <input type="text" id="track-lokasi" placeholder="Contoh: Jakarta Selatan" style="width:100%;padding:7px 10px;border:0.5px solid #ddd8cc;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;outline:none" />
+          </div>
+        </div>
+        <div style="margin-bottom:8px">
+          <label style="font-size:11px;color:#6b6b85;display:block;margin-bottom:3px">Keterangan / Catatan</label>
+          <input type="text" id="track-keterangan" placeholder="Contoh: Paket dalam perjalanan ke hub" style="width:100%;padding:7px 10px;border:0.5px solid #ddd8cc;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;outline:none" />
+        </div>
+        <button onclick="submitTracking()" style="background:#1a1a2e;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%">Simpan</button>
+      </div>
+
+      <!-- Timeline -->
+      <div style="font-size:11px;font-weight:500;color:#6b6b85;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Timeline Pengiriman</div>
+      <div class="timeline" id="tracking-timeline"></div>
+
+      <!-- Edit History (hidden) -->
+      <div style="display:none">
+        <div id="edit-history"></div>
+      </div>
     </div>
   </div>
 </div>
