@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "password": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+    "nama": "Administrator",
+    "role": "admin",
+    "status": "approved",
+    "createdAt": "2/6/2026, 19.17.53"
+  },
+  {
+    "id": 1780403053287,
+    "username": "Fadil",
+    "password": "5c128d0ce9bcec3e63401b9094c98cbbcb7c0589cc64fda80074e3551413738b",
+    "nama": "Fadilah Ahmad",
+    "role": "user",
+    "status": "approved",
+    "createdAt": "2/6/2026, 19.24.13"
+  }
+]
