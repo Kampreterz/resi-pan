@@ -4,175 +4,183 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Resi Pengiriman</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:#f4f1ea;min-height:100vh;color:#1a1a2e}
 
-/* ── AUTH SCREEN ── */
+/* AUTH */
 .auth-screen{display:none;min-height:100vh;align-items:center;justify-content:center;padding:1rem}
-.auth-screen.active{display:flex}
-.auth-box{background:#fff;border-radius:16px;border:0.5px solid #ddd8cc;width:380px;max-width:100%;overflow:hidden}
+.auth-screen.show{display:flex}
+.auth-box{background:#fff;border-radius:16px;border:.5px solid #ddd8cc;width:380px;max-width:100%;overflow:hidden}
 .auth-top{background:#1a1a2e;padding:1.5rem;text-align:center}
 .auth-logo{width:44px;height:44px;background:#e8d5a3;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;color:#1a1a2e;margin-bottom:10px}
 .auth-top h1{color:#fff;font-size:17px;font-weight:500}
 .auth-top p{color:#a0a0c0;font-size:13px;margin-top:3px}
 .auth-body{padding:1.5rem}
-.auth-tabs{display:flex;border:0.5px solid #ddd8cc;border-radius:8px;overflow:hidden;margin-bottom:1.25rem}
+.auth-tabs{display:flex;border:.5px solid #ddd8cc;border-radius:8px;overflow:hidden;margin-bottom:1.25rem}
 .auth-tab{flex:1;background:none;border:none;padding:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:#6b6b85;cursor:pointer}
 .auth-tab.active{background:#1a1a2e;color:#fff;font-weight:500}
 .field{margin-bottom:12px}
 .field label{display:block;font-size:12px;color:#6b6b85;margin-bottom:4px}
-.field input{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;border:0.5px solid #ddd8cc;border-radius:8px;background:#faf9f6;color:#1a1a2e;outline:none;transition:border-color .15s}
-.field input:focus{border-color:#a0a0c0;background:#fff}
+.field input,.field textarea,.field select{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;border:.5px solid #ddd8cc;border-radius:8px;background:#faf9f6;color:#1a1a2e;outline:none;transition:border-color .15s}
+.field input:focus,.field textarea:focus{border-color:#a0a0c0;background:#fff}
+.field textarea{resize:vertical;height:64px}
+.field input[readonly]{background:#f4f1ea;color:#6b6b85;cursor:default;font-family:'DM Mono',monospace;font-size:13px}
 .btn-full{width:100%;background:#1a1a2e;color:#fff;border:none;padding:11px;border-radius:8px;font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:4px}
 .btn-full:hover{background:#2d2d50}
-.auth-msg{font-size:13px;text-align:center;margin-top:10px;padding:8px;border-radius:6px}
-.auth-msg.error{background:#fff0f0;color:#c04040}
-.auth-msg.success{background:#f0fff4;color:#1a7a40}
+.msg{font-size:13px;text-align:center;margin-top:10px;padding:8px;border-radius:6px;display:none}
+.msg.error{background:#fff0f0;color:#c04040;display:block}
+.msg.success{background:#f0fff4;color:#1a7a40;display:block}
 
-/* ── APP ── */
+/* APP */
 .app{display:none}
-.app.active{display:block}
-.nav{background:#1a1a2e;padding:0 1.5rem;display:flex;align-items:center;height:52px;gap:12px}
+.app.show{display:block}
+.nav{background:#1a1a2e;padding:0 1.5rem;display:flex;align-items:center;height:52px;gap:10px}
 .nav-logo{width:30px;height:30px;background:#e8d5a3;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#1a1a2e;flex-shrink:0}
-.nav-title{color:#fff;font-size:15px;font-weight:500}
 .nav-tabs{display:flex;gap:2px;margin-left:auto}
 .nav-tab{background:none;border:none;color:#a0a0c0;padding:6px 12px;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap}
 .nav-tab:hover{color:#fff;background:rgba(255,255,255,.08)}
 .nav-tab.active{color:#1a1a2e;background:#e8d5a3;font-weight:500}
 .nav-user{display:flex;align-items:center;gap:8px;margin-left:8px}
-.nav-user-name{color:#a0a0c0;font-size:13px}
-.btn-logout{background:none;border:0.5px solid rgba(255,255,255,.2);border-radius:6px;color:#a0a0c0;padding:4px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
-.btn-logout:hover{color:#fff;border-color:rgba(255,255,255,.5)}
+.nav-name{color:#a0a0c0;font-size:12px;white-space:nowrap;overflow:hidden;max-width:120px;text-overflow:ellipsis}
+.btn-logout{background:none;border:.5px solid rgba(255,255,255,.2);border-radius:6px;color:#a0a0c0;padding:4px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-logout:hover{color:#fff}
 
-/* ── PAGES ── */
+/* PAGES */
 .page{display:none;padding:2rem 1rem}
-.page.active{display:block}
+.page.show{display:block}
 .container{max-width:640px;margin:0 auto}
-.container-wide{max-width:920px;margin:0 auto}
+.container-wide{max-width:960px;margin:0 auto}
 
-/* ── CARDS ── */
-.card{background:#fff;border-radius:14px;border:0.5px solid #ddd8cc;overflow:hidden;margin-bottom:1rem}
-.card-header{background:#1a1a2e;padding:1.1rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
-.card-header-left{display:flex;align-items:center;gap:10px}
+/* CARDS */
+.card{background:#fff;border-radius:14px;border:.5px solid #ddd8cc;overflow:hidden;margin-bottom:1rem}
+.card-head{background:#1a1a2e;padding:1.1rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+.card-head-left{display:flex;align-items:center;gap:10px}
 .c-logo{width:36px;height:36px;background:#e8d5a3;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:#1a1a2e}
-.card-header h2{color:#fff;font-size:15px;font-weight:500}
-.card-header p{color:#a0a0c0;font-size:12px;margin-top:2px}
-.badge{font-size:11px;font-weight:500;padding:4px 10px;border-radius:4px}
+.card-head h2{color:#fff;font-size:15px;font-weight:500}
+.card-head p{color:#a0a0c0;font-size:12px;margin-top:2px}
+.badge{font-size:11px;font-weight:500;padding:3px 9px;border-radius:4px}
 .badge-gold{background:#e8d5a3;color:#1a1a2e}
-.badge-pending{background:#fff3cd;color:#856404}
+.badge-pending{background:#f0f0f0;color:#555}
+.badge-pickup{background:#fff3cd;color:#856404}
+.badge-transit{background:#cce5ff;color:#004085}
+.badge-out{background:#d4edff;color:#0056b3}
+.badge-delivered{background:#d1f0d1;color:#1a6e1a}
+.badge-failed{background:#ffd6d6;color:#a00}
 .badge-approved{background:#d1f0d1;color:#1a6e1a}
 .badge-rejected{background:#ffd6d6;color:#a00}
 .badge-admin{background:#ddd0f8;color:#4a2e9a}
-.badge-user{background:#f0f0f0;color:#444}
+.badge-operasional{background:#d4edff;color:#004085}
+.badge-standard{background:#f0f0f0;color:#444}
 
-/* ── FORM ── */
+/* FORM */
 .form-body{padding:1.5rem}
 .form-section{margin-bottom:1.5rem}
-.section-label{font-size:11px;font-weight:500;color:#6b6b85;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.sec-label{font-size:11px;font-weight:500;color:#6b6b85;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
 .fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .field-full{grid-column:1/-1}
-.field label{display:block;font-size:12px;color:#6b6b85;margin-bottom:4px}
-.field input,.field textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:8px 12px;border:0.5px solid #ddd8cc;border-radius:8px;background:#faf9f6;color:#1a1a2e;outline:none;transition:border-color .15s}
-.field input:focus,.field textarea:focus{border-color:#a0a0c0;background:#fff}
-.field textarea{height:64px;resize:vertical}
-.field input[readonly]{background:#f4f1ea;color:#6b6b85;cursor:default;font-family:'DM Mono',monospace;font-size:13px}
-.divider{height:0.5px;background:#ddd8cc;margin:0 0 1.5rem}
+.divider{height:.5px;background:#ddd8cc;margin:0 0 1.5rem}
 .btn-row{display:flex;gap:10px;margin-top:.5rem}
 .btn-primary{flex:1;background:#1a1a2e;color:#fff;border:none;padding:11px;border-radius:8px;font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer}
 .btn-primary:hover{background:#2d2d50}
-.btn-secondary{background:#f4f1ea;color:#1a1a2e;border:0.5px solid #ddd8cc;padding:11px 16px;border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-secondary{background:#f4f1ea;color:#1a1a2e;border:.5px solid #ddd8cc;padding:11px 16px;border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer}
 .btn-secondary:hover{background:#e8d5a3}
 
-/* ── RESI LIST ── */
-.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+/* LIST */
+.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
 .list-header h2{font-size:18px;font-weight:500}
-.list-count{font-size:13px;color:#6b6b85}
-.search-box{width:100%;padding:9px 14px;border:0.5px solid #ddd8cc;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;background:#fff;color:#1a1a2e;outline:none;margin-bottom:1rem}
+.search-box{width:100%;padding:9px 14px;border:.5px solid #ddd8cc;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;background:#fff;color:#1a1a2e;outline:none;margin-bottom:1rem}
 .search-box:focus{border-color:#a0a0c0}
-.resi-item{background:#fff;border:0.5px solid #ddd8cc;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.resi-item{background:#fff;border:.5px solid #ddd8cc;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px}
 .resi-item:hover{border-color:#a0a0c0}
-.resi-no{font-family:'DM Mono',monospace;font-size:12px;color:#b07a10;font-weight:500;margin-bottom:4px}
-.resi-names{font-size:14px;font-weight:500;color:#1a1a2e;margin-bottom:4px}
-.resi-names span{color:#6b6b85;font-weight:400}
+.resi-no{font-family:'DM Mono',monospace;font-size:11px;color:#b07a10;font-weight:500}
+.resi-names{font-size:14px;font-weight:500;color:#1a1a2e;margin:4px 0}
 .resi-meta{font-size:12px;color:#6b6b85;display:flex;gap:10px;flex-wrap:wrap}
 .resi-by{font-size:11px;color:#a0a0c0;margin-top:3px}
-.item-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.btn-sm{border-radius:6px;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;border:0.5px solid #ddd8cc}
-.btn-sm-view{background:#f4f1ea;color:#1a1a2e}
-.btn-sm-view:hover{background:#e8d5a3}
-.btn-sm-edit{background:#eef4ff;color:#1a4a9a;border-color:#c0d4f8}
-.btn-sm-edit:hover{background:#dce9ff}
-.btn-sm-del{background:#fff0f0;color:#c04040;border-color:#f0c0c0}
-.btn-sm-del:hover{background:#ffe0e0}
+.item-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.btn-sm{border-radius:6px;padding:6px 11px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;border:.5px solid #ddd8cc;background:#f4f1ea;color:#1a1a2e;white-space:nowrap}
+.btn-sm:hover{background:#e8d5a3}
+.btn-sm-blue{background:#eef4ff;color:#1a4a9a;border-color:#c0d4f8}
+.btn-sm-blue:hover{background:#dce9ff}
+.btn-sm-red{background:#fff0f0;color:#c04040;border-color:#f0c0c0}
+.btn-sm-red:hover{background:#ffe0e0}
 .empty-state{text-align:center;padding:3rem 1rem;color:#6b6b85;font-size:14px}
 
-/* ── ADMIN USERS ── */
-.user-item{background:#fff;border:0.5px solid #ddd8cc;border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+/* BULK TOOLBAR */
+.bulk-toolbar{display:none;background:#1a1a2e;border-radius:10px;padding:10px 16px;margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap}
+.bulk-toolbar.show{display:flex}
+.btn-bulk{background:#e8d5a3;border:none;border-radius:6px;color:#1a1a2e;padding:6px 14px;font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-bulk-ghost{background:rgba(255,255,255,.1);border:.5px solid rgba(255,255,255,.2);border-radius:6px;color:#fff;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+
+/* USERS */
+.user-item{background:#fff;border:.5px solid #ddd8cc;border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .user-avatar{width:36px;height:36px;border-radius:50%;background:#e8e0f8;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:#4a2e9a;flex-shrink:0}
 .user-info{flex:1;min-width:0}
-.user-name{font-size:14px;font-weight:500;color:#1a1a2e}
+.user-name{font-size:14px;font-weight:500}
 .user-username{font-size:12px;color:#6b6b85;font-family:'DM Mono',monospace}
-.user-actions{display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
-.btn-approve{background:#d1f0d1;color:#1a6e1a;border:0.5px solid #a0d8a0;border-radius:6px;padding:5px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
-.btn-approve:hover{background:#b8e8b8}
-.btn-reject{background:#ffd6d6;color:#a00;border:0.5px solid #f0a0a0;border-radius:6px;padding:5px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
-.btn-reject:hover{background:#ffc0c0}
-.btn-del-user{background:#fff0f0;color:#c04040;border:0.5px solid #f0c0c0;border-radius:6px;padding:5px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
-.btn-del-user:hover{background:#ffe0e0}
+.user-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.btn-approve{background:#d1f0d1;color:#1a6e1a;border:.5px solid #a0d8a0;border-radius:6px;padding:5px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-reject{background:#ffd6d6;color:#a00;border:.5px solid #f0a0a0;border-radius:6px;padding:5px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-del-user{background:#fff0f0;color:#c04040;border:.5px solid #f0c0c0;border-radius:6px;padding:5px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
 
-/* ── MODAL ── */
+/* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);align-items:center;justify-content:center;z-index:100;padding:1rem}
 .modal-overlay.show{display:flex}
-.modal-box{background:#fff;border-radius:14px;width:420px;max-width:100%;overflow:hidden;border:0.5px solid #ddd8cc;max-height:90vh;overflow-y:auto}
-.modal-top{background:#1a1a2e;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0}
+.modal-box{background:#fff;border-radius:14px;width:440px;max-width:100%;border:.5px solid #ddd8cc;max-height:90vh;overflow-y:auto}
+.modal-top{background:#1a1a2e;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1}
 .modal-top-title{color:#fff;font-size:13px;font-weight:500}
 .modal-top-no{color:#e8d5a3;font-size:12px;font-family:'DM Mono',monospace}
-.modal-close{background:none;border:0.5px solid rgba(255,255,255,.3);border-radius:4px;color:#fff;padding:4px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.modal-close{background:none;border:.5px solid rgba(255,255,255,.3);border-radius:4px;color:#fff;padding:4px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
 .modal-content{padding:16px;font-size:12px}
 .modal-sec{font-size:10px;color:#6b6b85;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 .modal-row{display:flex;justify-content:space-between;margin-bottom:6px}
 .modal-key{color:#6b6b85}
 .modal-val{color:#1a1a2e;font-weight:500;text-align:right;max-width:60%}
-.modal-sep{height:0.5px;background:#ddd8cc;margin:10px 0}
+.modal-sep{height:.5px;background:#ddd8cc;margin:10px 0}
+.modal-actions{display:flex;gap:8px;padding:12px 16px;border-top:.5px solid #ddd8cc;position:sticky;bottom:0;background:#fff}
+.btn-modal-print{flex:1;background:#1a1a2e;color:#fff;border:none;padding:9px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-modal-close{background:#f4f1ea;border:.5px solid #ddd8cc;padding:9px 14px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:#1a1a2e;cursor:pointer}
+
+/* BARCODE */
 .barcode-wrap{display:flex;flex-direction:column;align-items:center;padding:10px 0 4px}
 .barcode-lines{display:flex;gap:1.5px;height:42px;align-items:stretch}
 .barcode-lines span{background:#1a1a2e;border-radius:1px}
 .barcode-num{font-size:10px;color:#6b6b85;font-family:'DM Mono',monospace;margin-top:6px;letter-spacing:.12em}
-.modal-actions{display:flex;gap:8px;padding:0 16px 16px;position:sticky;bottom:0;background:#fff;border-top:0.5px solid #ddd8cc;padding-top:12px}
-.btn-print{flex:1;background:#1a1a2e;color:#fff;border:none;padding:9px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
-.btn-print:hover{background:#2d2d50}
-.btn-modal-close{background:#f4f1ea;border:0.5px solid #ddd8cc;padding:9px 14px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:#1a1a2e;cursor:pointer}
 
-/* ── EDIT MODAL ── */
-.edit-field{margin-bottom:10px}
-.edit-field label{display:block;font-size:12px;color:#6b6b85;margin-bottom:4px}
-.edit-field input,.edit-field textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:8px 12px;border:0.5px solid #ddd8cc;border-radius:8px;background:#faf9f6;color:#1a1a2e;outline:none}
-.edit-field input:focus,.edit-field textarea:focus{border-color:#a0a0c0;background:#fff}
-.edit-field textarea{height:56px;resize:vertical}
+/* TRACKING */
+.timeline-item{display:flex;gap:12px;margin-bottom:0}
+.tl-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1;margin-top:2px}
+.tl-dot-done{background:#1a1a2e;color:#e8d5a3}
+.tl-dot-active{background:#e8d5a3;color:#1a1a2e;box-shadow:0 0 0 3px rgba(232,213,163,.3)}
+.tl-body{flex:1;padding-bottom:16px}
+.tl-status{font-size:13px;font-weight:500;color:#1a1a2e}
 
-/* ── TOAST ── */
-.toast{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:200;white-space:nowrap}
+/* IMPORT */
+.drop-zone{background:#fff;border:2px dashed #ddd8cc;border-radius:14px;padding:2.5rem;text-align:center;cursor:pointer;margin-bottom:1rem;transition:border-color .2s}
+.drop-zone:hover{border-color:#a0a0c0}
+
+/* TOAST */
+.toast{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:300;white-space:nowrap}
 .toast.show{display:block}
 
 @media print{
   body{background:#fff}
-  .nav,.page,.toast,.app>.page{display:none!important}
+  .nav,.page,.toast{display:none!important}
   #modal-edit{display:none!important}
+  #modal-bulk{display:none!important}
+  #modal-tracking{display:none!important}
   #modal-detail{display:flex!important;position:static;background:none}
   #modal-detail .modal-box{border:none;width:100%;max-width:100%}
   .modal-actions,.modal-close{display:none!important}
 }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
-<!-- ══ AUTH SCREEN ══════════════════════════════════════════════════════════ -->
-<div class="auth-screen active" id="auth-screen">
+<!-- AUTH -->
+<div class="auth-screen show" id="auth-screen">
   <div class="auth-box">
     <div class="auth-top">
       <div class="auth-logo">RE</div>
@@ -181,66 +189,58 @@ body{font-family:'DM Sans',sans-serif;background:#f4f1ea;min-height:100vh;color:
     </div>
     <div class="auth-body">
       <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchAuthTab('login')">Masuk</button>
-        <button class="auth-tab" onclick="switchAuthTab('register')">Daftar</button>
+        <button class="auth-tab active" onclick="switchTab('login')">Masuk</button>
+        <button class="auth-tab" onclick="switchTab('register')">Daftar</button>
       </div>
-
-      <!-- LOGIN -->
       <div id="tab-login">
-        <div class="field"><label>Username</label><input type="text" id="l-username" placeholder="Username" /></div>
-        <div class="field"><label>Password</label><input type="password" id="l-password" placeholder="Password" /></div>
+        <div class="field"><label>Username</label><input type="text" id="l-user" placeholder="Username" /></div>
+        <div class="field"><label>Password</label><input type="password" id="l-pass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()" /></div>
         <button class="btn-full" onclick="doLogin()">Masuk</button>
-        <div class="auth-msg" id="login-msg" style="display:none"></div>
+        <div class="msg" id="login-msg"></div>
       </div>
-
-      <!-- REGISTER -->
       <div id="tab-register" style="display:none">
         <div class="field"><label>Nama lengkap</label><input type="text" id="r-nama" placeholder="Nama kamu" /></div>
-        <div class="field"><label>Username</label><input type="text" id="r-username" placeholder="Pilih username" /></div>
-        <div class="field"><label>Password</label><input type="password" id="r-password" placeholder="Minimal 6 karakter" /></div>
+        <div class="field"><label>Username</label><input type="text" id="r-user" placeholder="Pilih username" /></div>
+        <div class="field"><label>Password</label><input type="password" id="r-pass" placeholder="Minimal 6 karakter" /></div>
         <button class="btn-full" onclick="doRegister()">Daftar</button>
-        <div class="auth-msg" id="register-msg" style="display:none"></div>
+        <div class="msg" id="register-msg"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══ APP ══════════════════════════════════════════════════════════════════ -->
+<!-- APP -->
 <div class="app" id="app">
   <nav class="nav">
     <div class="nav-logo">RE</div>
-    <span class="nav-title" style="display:none" id="nav-title-desktop">Resi Pengiriman</span>
     <div class="nav-tabs">
-      <button class="nav-tab active" data-page="form" onclick="showPage('form',this)">Buat Resi</button>
+      <button class="nav-tab active" data-page="form" id="tab-form" onclick="showPage('form',this)">Buat Resi</button>
       <button class="nav-tab" data-page="list" onclick="showPage('list',this)">Semua Resi</button>
-      <button class="nav-tab" data-page="admin" id="nav-admin" style="display:none" onclick="showPage('admin',this)">Kelola User</button>
-      <button class="nav-tab" data-page="import" onclick="showPage('import',this)">Import Excel</button>
+      <button class="nav-tab" data-page="import" id="tab-import" onclick="showPage('import',this)">Import Excel</button>
+      <button class="nav-tab" data-page="admin" id="tab-admin" style="display:none" onclick="showPage('admin',this)">Kelola User</button>
     </div>
     <div class="nav-user">
-      <span class="nav-user-name" id="nav-user-name"></span>
+      <span class="nav-name" id="nav-name"></span>
       <button class="btn-logout" onclick="doLogout()">Keluar</button>
     </div>
   </nav>
 
-  <!-- FORM -->
-  <div class="page active" id="page-form">
+  <!-- PAGE: FORM -->
+  <div class="page show" id="page-form">
     <div class="container">
       <div class="card">
-        <div class="card-header">
-          <div class="card-header-left">
-            <div class="c-logo">RE</div>
-            <div><h2>Buat Resi Baru</h2><p>Nomor urut otomatis</p></div>
-          </div>
+        <div class="card-head">
+          <div class="card-head-left"><div class="c-logo">RE</div><div><h2>Buat Resi Baru</h2><p>Nomor urut otomatis</p></div></div>
           <span class="badge badge-gold">Umum</span>
         </div>
         <div class="form-body">
           <div class="form-section">
-            <div class="section-label">Nomor Resi</div>
+            <div class="sec-label">Nomor Resi</div>
             <div class="field"><input type="text" id="no-resi" readonly /></div>
           </div>
           <div class="divider"></div>
           <div class="form-section">
-            <div class="section-label">Pengirim</div>
+            <div class="sec-label">Pengirim</div>
             <div class="fields-grid">
               <div class="field field-full"><label>Nama pengirim</label><input type="text" id="kirim-nama" placeholder="Nama lengkap / toko" /></div>
               <div class="field field-full"><label>Alamat pengirim</label><textarea id="kirim-alamat" placeholder="Jalan, kota, kode pos..."></textarea></div>
@@ -249,7 +249,7 @@ body{font-family:'DM Sans',sans-serif;background:#f4f1ea;min-height:100vh;color:
           </div>
           <div class="divider"></div>
           <div class="form-section">
-            <div class="section-label">Penerima</div>
+            <div class="sec-label">Penerima</div>
             <div class="fields-grid">
               <div class="field field-full"><label>Nama penerima</label><input type="text" id="terima-nama" placeholder="Nama lengkap" /></div>
               <div class="field field-full"><label>Alamat penerima</label><textarea id="terima-alamat" placeholder="Jalan, kota, kode pos..."></textarea></div>
@@ -258,7 +258,7 @@ body{font-family:'DM Sans',sans-serif;background:#f4f1ea;min-height:100vh;color:
           </div>
           <div class="divider"></div>
           <div class="form-section">
-            <div class="section-label">Detail Barang</div>
+            <div class="sec-label">Detail Barang</div>
             <div class="fields-grid">
               <div class="field field-full"><label>Deskripsi barang</label><input type="text" id="barang-desc" placeholder="Baju, elektronik, dokumen..." /></div>
               <div class="field"><label>Berat</label><input type="text" id="barang-berat" placeholder="1 kg" /></div>
@@ -275,83 +275,76 @@ body{font-family:'DM Sans',sans-serif;background:#f4f1ea;min-height:100vh;color:
     </div>
   </div>
 
-  <!-- LIST -->
+  <!-- PAGE: LIST -->
   <div class="page" id="page-list">
     <div class="container-wide">
       <div class="list-header">
         <h2>Semua Resi</h2>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="list-count" id="list-count"></span>
-          <button onclick="startBulkMode()" id="btn-bulk-start" style="background:#e8d5a3;border:none;border-radius:6px;color:#1a1a2e;padding:6px 14px;font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer">&#9998; Edit Pengirim Massal</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:13px;color:#6b6b85" id="list-count"></span>
+          <button class="btn-sm btn-sm-blue" id="btn-bulk-start" onclick="startBulkMode()" style="display:none">✎ Edit Pengirim Massal</button>
         </div>
       </div>
-      <input class="search-box" type="text" id="search-input" placeholder="Cari nomor resi, nama pengirim, atau penerima..." oninput="renderList()" />
-      <!-- Bulk toolbar -->
-      <div id="bulk-toolbar" style="display:none;background:#1a1a2e;border-radius:10px;padding:10px 16px;margin-bottom:12px;align-items:center;gap:12px;flex-wrap:wrap">
-        <span id="bulk-count" style="color:#e8d5a3;font-size:13px;font-weight:500"></span>
+      <input class="search-box" type="text" id="search-input" placeholder="Cari nomor resi, pengirim, atau penerima..." oninput="renderList()" />
+      <div class="bulk-toolbar" id="bulk-toolbar">
+        <span style="color:#e8d5a3;font-size:13px;font-weight:500" id="bulk-count"></span>
         <div style="display:flex;gap:8px;margin-left:auto">
-          <button onclick="selectAllVisible()" style="background:rgba(255,255,255,.1);border:0.5px solid rgba(255,255,255,.2);border-radius:6px;color:#fff;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer">Pilih Semua</button>
-          <button onclick="clearSelection()" style="background:rgba(255,255,255,.1);border:0.5px solid rgba(255,255,255,.2);border-radius:6px;color:#fff;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer">Batal</button>
-          <button onclick="openBulkEdit()" style="background:#e8d5a3;border:none;border-radius:6px;color:#1a1a2e;padding:6px 14px;font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer">&#9998; Isi Pengirim</button>
+          <button class="btn-bulk-ghost" onclick="selectAll()">Pilih Semua</button>
+          <button class="btn-bulk-ghost" onclick="clearSelection()">Batal</button>
+          <button class="btn-bulk" onclick="openBulkModal()">✎ Isi Pengirim</button>
         </div>
       </div>
       <div id="resi-list"></div>
     </div>
   </div>
 
-  <!-- IMPORT -->
+  <!-- PAGE: IMPORT -->
   <div class="page" id="page-import">
     <div class="container-wide">
       <div class="list-header">
         <h2>Import Excel</h2>
-        <a href="#" onclick="downloadTemplate()" style="font-size:13px;color:#1a4a9a;text-decoration:none">&#11015; Download Template</a>
+        <a href="#" onclick="downloadTemplate()" style="font-size:13px;color:#1a4a9a;text-decoration:none">⬇ Download Template</a>
       </div>
-      <div id="drop-zone" style="background:#fff;border:2px dashed #ddd8cc;border-radius:14px;padding:2.5rem;text-align:center;cursor:pointer;margin-bottom:1rem;transition:border-color .2s" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
-        <div style="font-size:28px;margin-bottom:8px">&#128193;</div>
-        <div style="font-size:15px;font-weight:500;color:#1a1a2e;margin-bottom:4px">Drag &amp; drop file Excel di sini</div>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.style.borderColor='#a0a0c0'" ondragleave="this.style.borderColor=''" ondrop="event.preventDefault();this.style.borderColor='';handleFile(event.dataTransfer.files[0])">
+        <div style="font-size:28px;margin-bottom:8px">📂</div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:4px">Drag & drop file Excel di sini</div>
         <div style="font-size:13px;color:#6b6b85">atau klik untuk pilih file (.xlsx)</div>
         <input type="file" id="file-input" accept=".xlsx" style="display:none" onchange="handleFile(this.files[0])" />
       </div>
-      <div style="background:#fff;border:0.5px solid #ddd8cc;border-radius:12px;padding:14px 16px;margin-bottom:1rem;font-size:13px;color:#6b6b85">
-        <strong style="color:#1a1a2e;display:block;margin-bottom:8px">Kolom Excel yang digunakan:</strong>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px">
-          <span>&#128204; <b>NO RESI</b> &#8594; Nomor Resi</span>
-          <span>&#128204; <b>NAMA PENGIRIM</b> &#8594; Nama Pengirim</span>
-          <span>&#128204; <b>ALAMAT PENGIRIM</b> &#8594; Alamat Pengirim</span>
-          <span>&#128204; <b>HP PENGIRIM</b> &#8594; No. HP Pengirim</span>
-          <span>&#128204; <b>NAMA PENERIMA</b> &#8594; Nama Penerima</span>
-          <span>&#128204; <b>ALAMAT PENERIMA</b> &#8594; Alamat Penerima</span>
-          <span>&#128204; <b>HP PENERIMA</b> &#8594; No. HP Penerima</span>
-          <span>&#128204; <b>DESKRIPSI BARANG</b> &#8594; Deskripsi</span>
-          <span>&#128204; <b>BERAT</b> &#8594; Berat</span>
-          <span>&#128204; <b>JUMLAH KOLI</b> &#8594; Koli</span>
-          <span>&#128204; <b>CATATAN</b> &#8594; Catatan</span>
-        </div>
-        <div style="margin-top:10px;padding:8px 10px;background:#f4f1ea;border-radius:6px;font-size:12px">
-          &#9432; Download template di atas agar kolom sudah sesuai. File Excel lama (format JNE) tetap bisa dibaca otomatis.
+      <div style="background:#fff;border:.5px solid #ddd8cc;border-radius:12px;padding:14px 16px;margin-bottom:1rem;font-size:13px;color:#6b6b85">
+        <strong style="color:#1a1a2e;display:block;margin-bottom:8px">Kolom yang dibaca dari Excel:</strong>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px">
+          <span>📌 <b>NO RESI</b> → Nomor Resi</span>
+          <span>📌 <b>NAMA PENGIRIM</b> → Nama Pengirim</span>
+          <span>📌 <b>ALAMAT PENGIRIM</b> → Alamat Pengirim</span>
+          <span>📌 <b>HP PENGIRIM</b> → No. HP Pengirim</span>
+          <span>📌 <b>NAMA PENERIMA</b> → Nama Penerima</span>
+          <span>📌 <b>ALAMAT PENERIMA</b> → Alamat Penerima</span>
+          <span>📌 <b>HP PENERIMA</b> → No. HP Penerima</span>
+          <span>📌 <b>DESKRIPSI BARANG</b> → Deskripsi</span>
+          <span>📌 <b>BERAT</b> → Berat</span>
+          <span>📌 <b>JUMLAH KOLI</b> → Koli</span>
+          <span>📌 <b>CATATAN</b> → Catatan</span>
         </div>
       </div>
       <div id="import-preview" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-          <div>
-            <span style="font-size:15px;font-weight:500" id="preview-count"></span>
-            <span style="font-size:13px;color:#6b6b85;margin-left:8px" id="preview-skip"></span>
-          </div>
+          <div><span style="font-size:15px;font-weight:500" id="preview-count"></span><span style="font-size:13px;color:#6b6b85;margin-left:8px" id="preview-skip"></span></div>
           <div style="display:flex;gap:8px">
-            <button class="btn-secondary" onclick="resetImport()" style="padding:8px 14px;font-size:13px">Batal</button>
-            <button class="btn-primary" onclick="konfirmasiImport()" style="flex:none;padding:8px 18px;font-size:13px">Simpan Semua</button>
+            <button class="btn-secondary" style="padding:8px 14px;font-size:13px" onclick="resetImport()">Batal</button>
+            <button class="btn-primary" style="flex:none;padding:8px 18px;font-size:13px" onclick="konfirmasiImport()">Simpan Semua</button>
           </div>
         </div>
         <div style="overflow-x:auto">
-          <table id="preview-table" style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:12px;overflow:hidden;border:0.5px solid #ddd8cc">
+          <table id="preview-table" style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:12px;overflow:hidden;border:.5px solid #ddd8cc">
             <thead>
               <tr style="background:#1a1a2e;color:#fff">
-                <th style="padding:10px 12px;text-align:left;white-space:nowrap">#</th>
+                <th style="padding:10px 12px;text-align:left">#</th>
                 <th style="padding:10px 12px;text-align:left;white-space:nowrap">No. Resi</th>
+                <th style="padding:10px 12px;text-align:left;white-space:nowrap">Pengirim</th>
                 <th style="padding:10px 12px;text-align:left;white-space:nowrap">Penerima</th>
                 <th style="padding:10px 12px;text-align:left;white-space:nowrap">Alamat Tujuan</th>
                 <th style="padding:10px 12px;text-align:left;white-space:nowrap">Deskripsi</th>
-                <th style="padding:10px 12px;text-align:left;white-space:nowrap">Koli</th>
                 <th style="padding:10px 12px;text-align:left;white-space:nowrap">Berat</th>
                 <th style="padding:10px 12px;text-align:left;white-space:nowrap">Status</th>
               </tr>
@@ -363,91 +356,155 @@ body{font-family:'DM Sans',sans-serif;background:#f4f1ea;min-height:100vh;color:
     </div>
   </div>
 
-  <!-- ADMIN -->
+  <!-- PAGE: ADMIN -->
   <div class="page" id="page-admin">
     <div class="container-wide">
-      <div class="list-header">
-        <h2>Kelola User</h2>
-        <span class="list-count" id="user-count"></span>
-      </div>
+      <div class="list-header"><h2>Kelola User</h2><span style="font-size:13px;color:#6b6b85" id="user-count"></span></div>
       <div id="user-list"></div>
     </div>
   </div>
 </div>
 
-<!-- ══ MODAL DETAIL ════════════════════════════════════════════════════════ -->
+<!-- MODAL: DETAIL / CETAK -->
 <div class="modal-overlay" id="modal-detail">
   <div class="modal-box">
     <div class="modal-top">
       <span class="modal-top-title">Resi Pengiriman</span>
       <div style="display:flex;align-items:center;gap:10px">
-        <span class="modal-top-no" id="m-no"></span>
+        <span class="modal-top-no" id="d-no"></span>
         <button class="modal-close" onclick="closeModal('modal-detail')">Tutup</button>
       </div>
     </div>
     <div class="modal-content">
       <div class="modal-sec">Pengirim</div>
-      <div class="modal-row"><span class="modal-key">Nama</span><span class="modal-val" id="m-kirim-nama"></span></div>
-      <div class="modal-row"><span class="modal-key">Alamat</span><span class="modal-val" id="m-kirim-alamat"></span></div>
-      <div class="modal-row"><span class="modal-key">No. HP</span><span class="modal-val" id="m-kirim-hp"></span></div>
+      <div class="modal-row"><span class="modal-key">Nama</span><span class="modal-val" id="d-kirim-nama"></span></div>
+      <div class="modal-row"><span class="modal-key">Alamat</span><span class="modal-val" id="d-kirim-alamat"></span></div>
+      <div class="modal-row"><span class="modal-key">No. HP</span><span class="modal-val" id="d-kirim-hp"></span></div>
       <div class="modal-sep"></div>
       <div class="modal-sec">Penerima</div>
-      <div class="modal-row"><span class="modal-key">Nama</span><span class="modal-val" id="m-terima-nama"></span></div>
-      <div class="modal-row"><span class="modal-key">Alamat</span><span class="modal-val" id="m-terima-alamat"></span></div>
-      <div class="modal-row"><span class="modal-key">No. HP</span><span class="modal-val" id="m-terima-hp"></span></div>
+      <div class="modal-row"><span class="modal-key">Nama</span><span class="modal-val" id="d-terima-nama"></span></div>
+      <div class="modal-row"><span class="modal-key">Alamat</span><span class="modal-val" id="d-terima-alamat"></span></div>
+      <div class="modal-row"><span class="modal-key">No. HP</span><span class="modal-val" id="d-terima-hp"></span></div>
       <div class="modal-sep"></div>
       <div class="modal-sec">Barang</div>
-      <div class="modal-row"><span class="modal-key">Deskripsi</span><span class="modal-val" id="m-desc"></span></div>
-      <div class="modal-row"><span class="modal-key">Berat</span><span class="modal-val" id="m-berat"></span></div>
-      <div class="modal-row"><span class="modal-key">Koli</span><span class="modal-val" id="m-koli"></span></div>
-      <div class="modal-row" id="m-catatan-row"><span class="modal-key">Catatan</span><span class="modal-val" id="m-catatan"></span></div>
-      <div class="modal-sep"></div>
-      <div class="modal-row"><span class="modal-key">Dibuat oleh</span><span class="modal-val" id="m-by"></span></div>
-      <div class="modal-row"><span class="modal-key">Tanggal</span><span class="modal-val" id="m-tanggal"></span></div>
+      <div class="modal-row"><span class="modal-key">Deskripsi</span><span class="modal-val" id="d-desc"></span></div>
+      <div class="modal-row"><span class="modal-key">Berat</span><span class="modal-val" id="d-berat"></span></div>
+      <div class="modal-row"><span class="modal-key">Koli</span><span class="modal-val" id="d-koli"></span></div>
+      <div class="modal-row" id="d-catatan-row"><span class="modal-key">Catatan</span><span class="modal-val" id="d-catatan"></span></div>
+      <div class="modal-row"><span class="modal-key">Dibuat oleh</span><span class="modal-val" id="d-by"></span></div>
+      <div class="modal-row"><span class="modal-key">Tanggal</span><span class="modal-val" id="d-tanggal"></span></div>
       <div class="modal-sep"></div>
       <div class="barcode-wrap">
-        <div class="barcode-lines" id="m-barcode"></div>
-        <div class="barcode-num" id="m-barcode-num"></div>
+        <div class="barcode-lines" id="d-barcode"></div>
+        <div class="barcode-num" id="d-barcode-num"></div>
       </div>
     </div>
     <div class="modal-actions">
       <button class="btn-modal-close" onclick="closeModal('modal-detail')">Tutup</button>
-      <button class="btn-print" onclick="window.print()">Cetak / Simpan PDF</button>
+      <button class="btn-modal-print" onclick="window.print()">Cetak / Simpan PDF</button>
     </div>
   </div>
 </div>
 
-<!-- ══ MODAL EDIT ══════════════════════════════════════════════════════════ -->
+<!-- MODAL: EDIT RESI -->
 <div class="modal-overlay" id="modal-edit">
   <div class="modal-box">
     <div class="modal-top">
       <span class="modal-top-title">Edit Resi</span>
       <div style="display:flex;align-items:center;gap:10px">
-        <span class="modal-top-no" id="edit-no"></span>
+        <span class="modal-top-no" id="e-no"></span>
         <button class="modal-close" onclick="closeModal('modal-edit')">Batal</button>
       </div>
     </div>
     <div class="modal-content" style="padding:16px">
-      <input type="hidden" id="edit-id" />
-      <p style="font-size:11px;color:#6b6b85;margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em">Pengirim</p>
-      <div class="edit-field"><label>Nama pengirim</label><input type="text" id="e-kirim-nama" /></div>
-      <div class="edit-field"><label>Alamat pengirim</label><textarea id="e-kirim-alamat"></textarea></div>
-      <div class="edit-field"><label>No. HP pengirim</label><input type="tel" id="e-kirim-hp" /></div>
+      <input type="hidden" id="e-id" />
+      <div class="modal-sec">Pengirim</div>
+      <div class="field"><label>Nama pengirim</label><input type="text" id="e-kirim-nama" /></div>
+      <div class="field"><label>Alamat pengirim</label><textarea id="e-kirim-alamat"></textarea></div>
+      <div class="field"><label>No. HP pengirim</label><input type="tel" id="e-kirim-hp" /></div>
       <div class="modal-sep"></div>
-      <p style="font-size:11px;color:#6b6b85;margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em">Penerima</p>
-      <div class="edit-field"><label>Nama penerima</label><input type="text" id="e-terima-nama" /></div>
-      <div class="edit-field"><label>Alamat penerima</label><textarea id="e-terima-alamat"></textarea></div>
-      <div class="edit-field"><label>No. HP penerima</label><input type="tel" id="e-terima-hp" /></div>
+      <div class="modal-sec">Penerima</div>
+      <div class="field"><label>Nama penerima</label><input type="text" id="e-terima-nama" /></div>
+      <div class="field"><label>Alamat penerima</label><textarea id="e-terima-alamat"></textarea></div>
+      <div class="field"><label>No. HP penerima</label><input type="tel" id="e-terima-hp" /></div>
       <div class="modal-sep"></div>
-      <p style="font-size:11px;color:#6b6b85;margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em">Barang</p>
-      <div class="edit-field"><label>Deskripsi</label><input type="text" id="e-desc" /></div>
-      <div class="edit-field"><label>Berat</label><input type="text" id="e-berat" /></div>
-      <div class="edit-field"><label>Koli</label><input type="number" id="e-koli" min="1" /></div>
-      <div class="edit-field"><label>Catatan</label><input type="text" id="e-catatan" /></div>
+      <div class="modal-sec">Barang</div>
+      <div class="field"><label>Deskripsi</label><input type="text" id="e-desc" /></div>
+      <div class="fields-grid" style="gap:10px">
+        <div class="field"><label>Berat</label><input type="text" id="e-berat" /></div>
+        <div class="field"><label>Koli</label><input type="number" id="e-koli" min="1" /></div>
+      </div>
+      <div class="field"><label>Catatan</label><input type="text" id="e-catatan" /></div>
     </div>
     <div class="modal-actions">
       <button class="btn-modal-close" onclick="closeModal('modal-edit')">Batal</button>
-      <button class="btn-print" onclick="saveEdit()">Simpan Perubahan</button>
+      <button class="btn-modal-print" onclick="saveEdit()">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: BULK EDIT PENGIRIM -->
+<div class="modal-overlay" id="modal-bulk">
+  <div class="modal-box">
+    <div class="modal-top">
+      <span class="modal-top-title">Isi Data Pengirim Massal</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="modal-top-no" id="bulk-modal-count"></span>
+        <button class="modal-close" onclick="closeModal('modal-bulk')">Batal</button>
+      </div>
+    </div>
+    <div class="modal-content" style="padding:16px">
+      <p style="font-size:13px;color:#6b6b85;margin-bottom:16px">Data berikut akan diterapkan ke semua resi yang dipilih. Kolom kosong tidak akan mengubah data yang sudah ada.</p>
+      <div class="field"><label>Nama pengirim *</label><input type="text" id="b-kirim-nama" placeholder="Nama lengkap / toko" /></div>
+      <div class="field"><label>Alamat pengirim</label><textarea id="b-kirim-alamat" placeholder="Jalan, kota, kode pos..."></textarea></div>
+      <div class="field"><label>No. HP pengirim</label><input type="tel" id="b-kirim-hp" placeholder="08xx-xxxx-xxxx" /></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-close" onclick="closeModal('modal-bulk')">Batal</button>
+      <button class="btn-modal-print" onclick="saveBulkEdit()">Simpan ke Semua Resi Dipilih</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TRACKING -->
+<div class="modal-overlay" id="modal-tracking">
+  <div class="modal-box" style="width:480px">
+    <div class="modal-top">
+      <span class="modal-top-title">History & Tracking</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="modal-top-no" id="t-no"></span>
+        <button class="modal-close" onclick="closeModal('modal-tracking')">Tutup</button>
+      </div>
+    </div>
+    <div class="modal-content" style="padding:16px">
+      <!-- Form update (admin: status+lokasi+ket, operasional+creator: lokasi+ket) -->
+      <div id="t-form" style="display:none;background:#f4f1ea;border-radius:10px;padding:12px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:500;color:#1a1a2e;margin-bottom:10px" id="t-form-title">Update Status</div>
+        <div id="t-status-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <label style="font-size:11px;color:#6b6b85;display:block;margin-bottom:3px">Status</label>
+            <select id="t-status" style="width:100%;padding:7px 10px;border:.5px solid #ddd8cc;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;color:#1a1a2e;outline:none">
+              <option value="pickup">Pickup</option>
+              <option value="transit">In Transit</option>
+              <option value="out">Out for Delivery</option>
+              <option value="delivered">Delivered</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:#6b6b85;display:block;margin-bottom:3px">Lokasi</label>
+            <input type="text" id="t-lokasi" placeholder="Contoh: Jakarta Selatan" style="width:100%;padding:7px 10px;border:.5px solid #ddd8cc;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;outline:none" />
+          </div>
+        </div>
+        <div style="margin-bottom:8px">
+          <label style="font-size:11px;color:#6b6b85;display:block;margin-bottom:3px">Keterangan</label>
+          <input type="text" id="t-keterangan" placeholder="Contoh: Paket dalam perjalanan" style="width:100%;padding:7px 10px;border:.5px solid #ddd8cc;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;outline:none" />
+        </div>
+        <button id="t-submit-btn" onclick="submitTracking()" style="background:#1a1a2e;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%">Simpan</button>
+      </div>
+      <!-- Timeline -->
+      <div style="font-size:11px;font-weight:500;color:#6b6b85;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Timeline Pengiriman</div>
+      <div id="t-timeline"></div>
     </div>
   </div>
 </div>
@@ -457,111 +514,108 @@ body{font-family:'DM Sans',sans-serif;background:#f4f1ea;min-height:100vh;color:
 <script>
 let me = null;
 let allResi = [];
-let allUsers = [];
+let selectedIds = new Set();
+let bulkMode = false;
+let importRows = [];
+let currentTrackResiId = null;
+let editingTrackId = null;
 
-// ── AUTH ────────────────────────────────────────────────────────────────────
-function switchAuthTab(tab) {
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
   document.getElementById('tab-login').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('tab-register').style.display = tab === 'register' ? 'block' : 'none';
-  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', i===(tab==='login'?0:1)));
 }
-
-function showAuthMsg(id, msg, type) {
+function showMsg(id, msg, type) {
   const el = document.getElementById(id);
-  el.textContent = msg; el.className = 'auth-msg ' + type; el.style.display = 'block';
+  el.textContent = msg; el.className = 'msg ' + type;
 }
-
 async function doLogin() {
-  const username = document.getElementById('l-username').value.trim();
-  const password = document.getElementById('l-password').value;
-  if (!username || !password) return showAuthMsg('login-msg', 'Isi username dan password', 'error');
+  const username = document.getElementById('l-user').value.trim();
+  const password = document.getElementById('l-pass').value;
+  if (!username || !password) return showMsg('login-msg', 'Isi username dan password', 'error');
   try {
     const res = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username,password}) });
     const data = await res.json();
-    if (!data.ok) return showAuthMsg('login-msg', data.msg, 'error');
-    me = data.user;
-    enterApp();
-  } catch { showAuthMsg('login-msg', 'Tidak bisa terhubung ke server', 'error'); }
+    if (!data.ok) return showMsg('login-msg', data.msg, 'error');
+    me = data.user; enterApp();
+  } catch { showMsg('login-msg', 'Tidak bisa terhubung ke server', 'error'); }
 }
-
 async function doRegister() {
   const nama = document.getElementById('r-nama').value.trim();
-  const username = document.getElementById('r-username').value.trim();
-  const password = document.getElementById('r-password').value;
-  if (!nama || !username || !password) return showAuthMsg('register-msg', 'Semua kolom harus diisi', 'error');
-  if (password.length < 6) return showAuthMsg('register-msg', 'Password minimal 6 karakter', 'error');
+  const username = document.getElementById('r-user').value.trim();
+  const password = document.getElementById('r-pass').value;
+  if (!nama || !username || !password) return showMsg('register-msg', 'Semua kolom harus diisi', 'error');
+  if (password.length < 6) return showMsg('register-msg', 'Password minimal 6 karakter', 'error');
   try {
     const res = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({nama,username,password}) });
     const data = await res.json();
-    if (!data.ok) return showAuthMsg('register-msg', data.msg, 'error');
-    showAuthMsg('register-msg', data.msg, 'success');
-    ['r-nama','r-username','r-password'].forEach(id => document.getElementById(id).value = '');
-  } catch { showAuthMsg('register-msg', 'Tidak bisa terhubung ke server', 'error'); }
+    showMsg('register-msg', data.msg, data.ok ? 'success' : 'error');
+    if (data.ok) { document.getElementById('r-nama').value=''; document.getElementById('r-user').value=''; document.getElementById('r-pass').value=''; }
+  } catch { showMsg('register-msg', 'Tidak bisa terhubung ke server', 'error'); }
 }
-
 async function doLogout() {
   await fetch('/api/logout', { method:'POST' });
   me = null; allResi = [];
-  document.getElementById('app').classList.remove('active');
-  document.getElementById('auth-screen').classList.add('active');
-  document.getElementById('l-username').value = '';
-  document.getElementById('l-password').value = '';
-  document.getElementById('login-msg').style.display = 'none';
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('auth-screen').classList.add('show');
+  document.getElementById('l-user').value='';
+  document.getElementById('l-pass').value='';
+  document.getElementById('login-msg').className='msg';
 }
-
 function enterApp() {
-  document.getElementById('auth-screen').classList.remove('active');
-  document.getElementById('app').classList.add('active');
-  document.getElementById('nav-user-name').textContent = me.nama + (me.role === 'admin' ? ' (admin)' : '');
-  document.getElementById('nav-admin').style.display = me.role === 'admin' ? 'inline-block' : 'none';
-  showPage('form', document.querySelector('[data-page="form"]'));
-  fetchNextNo();
+  document.getElementById('auth-screen').classList.remove('show');
+  document.getElementById('app').classList.add('show');
+  document.getElementById('nav-name').textContent = me.nama;
+  const isAdmin = me.role === 'admin';
+  const isStandard = me.role === 'standard';
+  document.getElementById('tab-admin').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('tab-form').style.display = isStandard ? 'none' : 'inline-block';
+  document.getElementById('tab-import').style.display = isStandard ? 'none' : 'inline-block';
+  document.getElementById('btn-bulk-start').style.display = isStandard ? 'none' : 'inline-block';
+  if (isStandard) showPage('list', document.querySelector('[data-page="list"]'));
+  else { showPage('form', document.querySelector('[data-page="form"]')); fetchNextNo(); }
 }
 
-// ── NAV ──────────────────────────────────────────────────────────────────────
+// ── NAV ───────────────────────────────────────────────────────────────────────
 function showPage(name, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('page-' + name).classList.add('show');
   if (btn) btn.classList.add('active');
   if (name === 'list') loadResi();
   if (name === 'admin') loadUsers();
 }
 
-// ── RESI FORM ────────────────────────────────────────────────────────────────
+// ── RESI FORM ─────────────────────────────────────────────────────────────────
 async function fetchNextNo() {
   try {
     const res = await fetch('/api/next-no');
-    if (res.status === 401) return;
-    const data = await res.json();
-    document.getElementById('no-resi').value = data.noResi;
+    if (res.ok) { const d = await res.json(); document.getElementById('no-resi').value = d.noResi; }
   } catch {}
 }
-
 function fv(id) { return document.getElementById(id).value.trim(); }
-
 async function simpanResi() {
-  const resi = {
-    noResi: fv('no-resi'), kirimNama: fv('kirim-nama'), kirimAlamat: fv('kirim-alamat'),
-    kirimHp: fv('kirim-hp'), terimaNama: fv('terima-nama'), terimaAlamat: fv('terima-alamat'),
-    terimaHp: fv('terima-hp'), barangDesc: fv('barang-desc'), barangBerat: fv('barang-berat'),
-    barangKoli: fv('barang-koli') || '1', barangCatatan: fv('barang-catatan')
+  const payload = {
+    noResi:fv('no-resi'), kirimNama:fv('kirim-nama'), kirimAlamat:fv('kirim-alamat'), kirimHp:fv('kirim-hp'),
+    terimaNama:fv('terima-nama'), terimaAlamat:fv('terima-alamat'), terimaHp:fv('terima-hp'),
+    barangDesc:fv('barang-desc'), barangBerat:fv('barang-berat'),
+    barangKoli:fv('barang-koli')||'1', barangCatatan:fv('barang-catatan')
   };
   try {
-    const res = await fetch('/api/resi', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(resi) });
-    if (res.ok) { showToast('Resi berhasil disimpan!'); resetForm(); }
-    else if (res.status === 401) showToast('Sesi habis, silakan login ulang.');
-  } catch { showToast('Gagal menyimpan.'); }
+    const res = await fetch('/api/resi', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.ok) { showToast('Resi berhasil disimpan!'); resetForm(); }
+    else showToast(data.msg || 'Gagal menyimpan');
+  } catch { showToast('Gagal terhubung ke server'); }
 }
-
 function resetForm() {
-  ['kirim-nama','kirim-alamat','kirim-hp','terima-nama','terima-alamat','terima-hp',
-   'barang-desc','barang-berat','barang-catatan'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('barang-koli').value = '1';
+  ['kirim-nama','kirim-alamat','kirim-hp','terima-nama','terima-alamat','terima-hp','barang-desc','barang-berat','barang-catatan'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('barang-koli').value='1';
   fetchNextNo();
 }
 
-// ── RESI LIST ────────────────────────────────────────────────────────────────
+// ── RESI LIST ─────────────────────────────────────────────────────────────────
 async function loadResi() {
   try {
     const res = await fetch('/api/resi');
@@ -569,9 +623,11 @@ async function loadResi() {
     renderList();
   } catch { document.getElementById('resi-list').innerHTML = '<div class="empty-state">Tidak bisa terhubung ke server.</div>'; }
 }
-
+function statusLabel(s) {
+  return {pending:'Pending',pickup:'Pickup',transit:'In Transit',out:'Out for Delivery',delivered:'Delivered',failed:'Failed'}[s]||'Pending';
+}
 function renderList() {
-  const q = document.getElementById('search-input').value.toLowerCase();
+  const q = (document.getElementById('search-input').value||'').toLowerCase();
   const filtered = allResi.filter(r =>
     (r.noResi||'').toLowerCase().includes(q) ||
     (r.kirimNama||'').toLowerCase().includes(q) ||
@@ -581,63 +637,67 @@ function renderList() {
   const container = document.getElementById('resi-list');
   if (!filtered.length) { container.innerHTML = '<div class="empty-state">Belum ada resi.</div>'; return; }
 
+  const isAdmin = me && me.role === 'admin';
+  const isOps = me && me.role === 'operasional';
+  const isStandard = me && me.role === 'standard';
+
   container.innerHTML = filtered.map(r => {
     const isMine = me && r.createdById === me.id;
-    const isAdmin = me && me.role === 'admin';
-    const canEdit = isMine || isAdmin;
+    const canEdit = isAdmin || (isOps && isMine);
     const canDelete = isAdmin;
-    const checked = selectedIds && selectedIds.has(r.id);
+    const checked = selectedIds.has(r.id);
     const missingKirim = !r.kirimNama;
-    return `<div class="resi-item" id="item-${r.id}" style="${checked ? 'border-color:#1a1a2e;background:#f8f6ff;' : ''}${missingKirim ? 'border-left:3px solid #e8c940;' : ''}">
-      ${bulkMode ? `<input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleSelect(${r.id})" style="width:16px;height:16px;flex-shrink:0;margin-top:4px;cursor:pointer" />` : ''}
-      <div style="flex:1;min-width:0;cursor:${bulkMode ? 'pointer' : 'default'}" ${bulkMode ? `onclick="toggleSelect(${r.id})"` : ''}>
-        <div class="resi-no">${r.noResi||'-'}</div>
-        <div class="resi-names">${r.kirimNama ? r.kirimNama : '<span style=\"color:#c08000\">&#9888; Pengirim belum diisi</span>'} <span>&#8594;</span> ${r.terimaNama||'-'}</div>
-        <div class="resi-meta"><span>${r.barangDesc||'-'}</span>${r.barangBerat ? '<span>'+r.barangBerat+'</span>' : ''}<span>${r.tanggal||''}</span></div>
+    return `<div class="resi-item" id="item-${r.id}" style="${checked?'border-color:#1a1a2e;background:#f8f6ff;':''}${missingKirim?'border-left:3px solid #e8c940;':''}">
+      ${bulkMode ? `<input type="checkbox" ${checked?'checked':''} onchange="toggleSelect(${r.id})" style="width:16px;height:16px;flex-shrink:0;margin-top:4px;cursor:pointer" />` : ''}
+      <div style="flex:1;min-width:0;cursor:${bulkMode?'pointer':'default'}" ${bulkMode?`onclick="toggleSelect(${r.id})"`:''}>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span class="resi-no">${r.noResi||'-'}</span>
+          <span class="badge badge-${r.status||'pending'}">${statusLabel(r.status)}</span>
+        </div>
+        <div class="resi-names">${missingKirim?'<span style="color:#c08000">⚠ Pengirim belum diisi</span>':r.kirimNama} <span style="color:#aaa">→</span> ${r.terimaNama||'-'}</div>
+        <div class="resi-meta"><span>${r.barangDesc||'-'}</span>${r.barangBerat?'<span>'+r.barangBerat+'</span>':''}<span>${r.tanggal||''}</span></div>
         <div class="resi-by">Dibuat oleh: ${r.createdByNama||'-'}</div>
       </div>
       ${!bulkMode ? `<div class="item-actions">
-        <button class="btn-sm btn-sm-view" onclick="openDetail(${r.id})">Detail</button>
-        ${canEdit ? `<button class="btn-sm btn-sm-edit" onclick="openEdit(${r.id})">Edit</button>` : ''}
-        ${canDelete ? `<button class="btn-sm btn-sm-del" onclick="hapusResi(${r.id})">Hapus</button>` : ''}
+        <button class="btn-sm" onclick="openDetail(${r.id})">Detail</button>
+        <button class="btn-sm btn-sm-blue" onclick="openTracking(${r.id})">Tracking</button>
+        ${canEdit ? `<button class="btn-sm btn-sm-blue" onclick="openEdit(${r.id})">Edit</button>` : ''}
+        ${canDelete ? `<button class="btn-sm btn-sm-red" onclick="hapusResi(${r.id})">Hapus</button>` : ''}
       </div>` : ''}
     </div>`;
   }).join('');
-
   updateBulkToolbar();
 }
 
-// ── DETAIL MODAL ─────────────────────────────────────────────────────────────
+// ── DETAIL MODAL ──────────────────────────────────────────────────────────────
 function openDetail(id) {
-  const r = allResi.find(x => x.id === id); if (!r) return;
-  document.getElementById('m-no').textContent = r.noResi||'-';
-  document.getElementById('m-kirim-nama').textContent = r.kirimNama||'-';
-  document.getElementById('m-kirim-alamat').textContent = r.kirimAlamat||'-';
-  document.getElementById('m-kirim-hp').textContent = r.kirimHp||'-';
-  document.getElementById('m-terima-nama').textContent = r.terimaNama||'-';
-  document.getElementById('m-terima-alamat').textContent = r.terimaAlamat||'-';
-  document.getElementById('m-terima-hp').textContent = r.terimaHp||'-';
-  document.getElementById('m-desc').textContent = r.barangDesc||'-';
-  document.getElementById('m-berat').textContent = r.barangBerat||'-';
-  document.getElementById('m-koli').textContent = r.barangKoli||'-';
-  document.getElementById('m-by').textContent = r.createdByNama||'-';
-  document.getElementById('m-tanggal').textContent = r.tanggal||'-';
+  const r = allResi.find(x => x.id===id); if (!r) return;
+  document.getElementById('d-no').textContent = r.noResi||'-';
+  document.getElementById('d-kirim-nama').textContent = r.kirimNama||'-';
+  document.getElementById('d-kirim-alamat').textContent = r.kirimAlamat||'-';
+  document.getElementById('d-kirim-hp').textContent = r.kirimHp||'-';
+  document.getElementById('d-terima-nama').textContent = r.terimaNama||'-';
+  document.getElementById('d-terima-alamat').textContent = r.terimaAlamat||'-';
+  document.getElementById('d-terima-hp').textContent = r.terimaHp||'-';
+  document.getElementById('d-desc').textContent = r.barangDesc||'-';
+  document.getElementById('d-berat').textContent = r.barangBerat||'-';
+  document.getElementById('d-koli').textContent = r.barangKoli||'-';
+  document.getElementById('d-by').textContent = r.createdByNama||'-';
+  document.getElementById('d-tanggal').textContent = r.tanggal||'-';
   const cat = r.barangCatatan;
-  document.getElementById('m-catatan-row').style.display = cat ? 'flex' : 'none';
-  document.getElementById('m-catatan').textContent = cat||'';
-  const bc = document.getElementById('m-barcode'); bc.innerHTML = '';
-  [2,1,3,1,2,1,1,3,2,1,3,2,1,2,1,3,1,2,3,1,2,1,1,2,3,1,2,1,3,2].forEach(w => {
-    const b = document.createElement('span'); b.style.width = w+'px'; bc.appendChild(b);
-  });
-  document.getElementById('m-barcode-num').textContent = r.noResi||'-';
+  document.getElementById('d-catatan-row').style.display = cat ? 'flex' : 'none';
+  document.getElementById('d-catatan').textContent = cat||'';
+  const bc = document.getElementById('d-barcode'); bc.innerHTML='';
+  [2,1,3,1,2,1,1,3,2,1,3,2,1,2,1,3,1,2,3,1,2,1,1,2,3,1,2,1,3,2].forEach(w=>{const b=document.createElement('span');b.style.width=w+'px';bc.appendChild(b);});
+  document.getElementById('d-barcode-num').textContent = r.noResi||'-';
   document.getElementById('modal-detail').classList.add('show');
 }
 
 // ── EDIT MODAL ────────────────────────────────────────────────────────────────
 function openEdit(id) {
-  const r = allResi.find(x => x.id === id); if (!r) return;
-  document.getElementById('edit-id').value = r.id;
-  document.getElementById('edit-no').textContent = r.noResi||'-';
+  const r = allResi.find(x => x.id===id); if (!r) return;
+  document.getElementById('e-id').value = r.id;
+  document.getElementById('e-no').textContent = r.noResi||'-';
   document.getElementById('e-kirim-nama').value = r.kirimNama||'';
   document.getElementById('e-kirim-alamat').value = r.kirimAlamat||'';
   document.getElementById('e-kirim-hp').value = r.kirimHp||'';
@@ -650,413 +710,343 @@ function openEdit(id) {
   document.getElementById('e-catatan').value = r.barangCatatan||'';
   document.getElementById('modal-edit').classList.add('show');
 }
-
 async function saveEdit() {
-  const id = parseInt(document.getElementById('edit-id').value);
+  const id = parseInt(document.getElementById('e-id').value);
   const payload = {
-    kirimNama: document.getElementById('e-kirim-nama').value.trim(),
-    kirimAlamat: document.getElementById('e-kirim-alamat').value.trim(),
-    kirimHp: document.getElementById('e-kirim-hp').value.trim(),
-    terimaNama: document.getElementById('e-terima-nama').value.trim(),
-    terimaAlamat: document.getElementById('e-terima-alamat').value.trim(),
-    terimaHp: document.getElementById('e-terima-hp').value.trim(),
-    barangDesc: document.getElementById('e-desc').value.trim(),
-    barangBerat: document.getElementById('e-berat').value.trim(),
-    barangKoli: document.getElementById('e-koli').value.trim(),
-    barangCatatan: document.getElementById('e-catatan').value.trim(),
+    kirimNama:document.getElementById('e-kirim-nama').value.trim(),
+    kirimAlamat:document.getElementById('e-kirim-alamat').value.trim(),
+    kirimHp:document.getElementById('e-kirim-hp').value.trim(),
+    terimaNama:document.getElementById('e-terima-nama').value.trim(),
+    terimaAlamat:document.getElementById('e-terima-alamat').value.trim(),
+    terimaHp:document.getElementById('e-terima-hp').value.trim(),
+    barangDesc:document.getElementById('e-desc').value.trim(),
+    barangBerat:document.getElementById('e-berat').value.trim(),
+    barangKoli:document.getElementById('e-koli').value.trim(),
+    barangCatatan:document.getElementById('e-catatan').value.trim(),
   };
   try {
-    const res = await fetch('/api/resi/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const res = await fetch('/api/resi/'+id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.ok) { closeModal('modal-edit'); showToast('Resi berhasil diupdate!'); await loadResi(); }
+    else showToast(data.msg||'Gagal update');
+  } catch { showToast('Gagal terhubung'); }
+}
+async function hapusResi(id) {
+  if (!confirm('Hapus resi ini?')) return;
+  try {
+    const res = await fetch('/api/resi/'+id, { method:'DELETE' });
+    const data = await res.json();
+    if (data.ok) { showToast('Resi dihapus.'); allResi = allResi.filter(r => r.id!==id); renderList(); }
+    else showToast(data.msg||'Gagal hapus');
+  } catch { showToast('Gagal terhubung'); }
+}
+
+// ── BULK EDIT ─────────────────────────────────────────────────────────────────
+function startBulkMode() {
+  bulkMode = true; selectedIds.clear();
+  allResi.filter(r => !r.kirimNama).forEach(r => selectedIds.add(r.id));
+  if (selectedIds.size) showToast(selectedIds.size + ' resi tanpa pengirim dipilih otomatis');
+  renderList();
+}
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+  const item = document.getElementById('item-'+id);
+  if (item) { const cb = item.querySelector('input[type=checkbox]'); if(cb) cb.checked=selectedIds.has(id); item.style.background=selectedIds.has(id)?'#f8f6ff':''; item.style.borderColor=selectedIds.has(id)?'#1a1a2e':''; }
+  updateBulkToolbar();
+}
+function selectAll() {
+  const q=(document.getElementById('search-input').value||'').toLowerCase();
+  allResi.filter(r=>(r.noResi||'').toLowerCase().includes(q)||(r.kirimNama||'').toLowerCase().includes(q)||(r.terimaNama||'').toLowerCase().includes(q)).forEach(r=>selectedIds.add(r.id));
+  renderList();
+}
+function clearSelection() { selectedIds.clear(); bulkMode=false; renderList(); }
+function updateBulkToolbar() {
+  const tb = document.getElementById('bulk-toolbar');
+  if (selectedIds.size>0||bulkMode) { tb.classList.add('show'); document.getElementById('bulk-count').textContent=selectedIds.size+' resi dipilih'; }
+  else tb.classList.remove('show');
+}
+function openBulkModal() {
+  if (!selectedIds.size) return showToast('Pilih minimal 1 resi dulu');
+  document.getElementById('bulk-modal-count').textContent = selectedIds.size+' resi dipilih';
+  document.getElementById('b-kirim-nama').value='';
+  document.getElementById('b-kirim-alamat').value='';
+  document.getElementById('b-kirim-hp').value='';
+  document.getElementById('modal-bulk').classList.add('show');
+}
+async function saveBulkEdit() {
+  const kirimNama=document.getElementById('b-kirim-nama').value.trim();
+  const kirimAlamat=document.getElementById('b-kirim-alamat').value.trim();
+  const kirimHp=document.getElementById('b-kirim-hp').value.trim();
+  if (!kirimNama && !kirimAlamat && !kirimHp) return showToast('Isi minimal satu kolom');
+  let ok=0, fail=0;
+  for (const id of [...selectedIds]) {
+    const resi = allResi.find(r=>r.id===id); if(!resi) continue;
+    const payload = { ...resi, kirimNama:kirimNama||resi.kirimNama, kirimAlamat:kirimAlamat||resi.kirimAlamat, kirimHp:kirimHp||resi.kirimHp };
+    try { const res=await fetch('/api/resi/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); (await res.json()).ok ? ok++ : fail++; }
+    catch { fail++; }
+  }
+  closeModal('modal-bulk'); showToast(ok+' resi diupdate!'+(fail?' '+fail+' gagal.':''));
+  selectedIds.clear(); bulkMode=false; await loadResi();
+}
+
+// ── TRACKING ──────────────────────────────────────────────────────────────────
+async function openTracking(id) {
+  const resi = allResi.find(r=>r.id===id); if(!resi) return;
+  currentTrackResiId = id; editingTrackId = null;
+  document.getElementById('t-no').textContent = resi.noResi||'-';
+  const isAdmin = me && me.role==='admin';
+  const isOps = me && me.role==='operasional';
+  const isMine = me && resi.createdById===me.id;
+  const canAdd = isAdmin || (isOps && isMine);
+  const tForm = document.getElementById('t-form');
+  const tStatusRow = document.getElementById('t-status-row');
+  tForm.style.display = canAdd ? 'block' : 'none';
+  if (tStatusRow) tStatusRow.style.display = isAdmin ? 'grid' : 'none';
+  document.getElementById('t-form-title').textContent = isAdmin ? 'Update Status Pengiriman' : 'Tambah Keterangan Timeline';
+  document.getElementById('t-submit-btn').textContent = 'Simpan';
+  document.getElementById('t-submit-btn').onclick = submitTracking;
+  document.getElementById('t-lokasi').value='';
+  document.getElementById('t-keterangan').value='';
+  await loadTracking(id);
+  document.getElementById('modal-tracking').classList.add('show');
+}
+async function loadTracking(id) {
+  try {
+    const res = await fetch('/api/resi/'+id+'/tracking');
+    const data = await res.json();
+    renderTimeline(Array.isArray(data) ? data : []);
+  } catch {}
+}
+function renderTimeline(tracking) {
+  const container = document.getElementById('t-timeline');
+  if (!tracking.length) { container.innerHTML='<div style="text-align:center;color:#aaa;font-size:13px;padding:12px 0">Belum ada update status</div>'; return; }
+  const resi = allResi.find(r=>r.id===currentTrackResiId);
+  const isAdmin = me && me.role==='admin';
+  const isOps = me && me.role==='operasional';
+  const isMine = me && resi && resi.createdById===me.id;
+  const canEdit = isAdmin || (isOps && isMine);
+  container.innerHTML = tracking.map((t,i) => {
+    const isLast = i===tracking.length-1;
+    return `<div class="timeline-item" id="tl-${t.id}">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tl-dot ${isLast?'tl-dot-active':'tl-dot-done'}">${isLast?'●':'✓'}</div>
+        ${!isLast?'<div style="width:2px;flex:1;background:#ddd8cc;min-height:20px;margin:3px 0"></div>':''}
+      </div>
+      <div class="tl-body">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="tl-status">${statusLabel(t.status)}</span>
+          <span class="badge badge-${t.status||'pending'}">${statusLabel(t.status)}</span>
+          ${canEdit?`<div style="margin-left:auto;display:flex;gap:4px">
+            <button onclick="editTrackEntry(${t.id},'${t.status||''}','${(t.lokasi||'').replace(/'/g,'&#39;')}','${(t.keterangan||'').replace(/'/g,'&#39;')}')" style="background:#eef4ff;border:.5px solid #c0d4f8;border-radius:4px;color:#1a4a9a;padding:3px 8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Edit</button>
+            <button onclick="deleteTrackEntry(${t.id})" style="background:#fff0f0;border:.5px solid #f0c0c0;border-radius:4px;color:#c04040;padding:3px 8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Hapus</button>
+          </div>`:''}
+        </div>
+        ${t.lokasi?`<div style="font-size:11px;color:#6b6b85;margin-top:2px">📍 ${t.lokasi}</div>`:''}
+        ${t.keterangan?`<div style="font-size:12px;color:#444;margin-top:3px">${t.keterangan}</div>`:''}
+        <div style="font-size:11px;color:#a0a0c0;margin-top:3px">🕐 ${t.waktu} · oleh ${t.updatedByNama}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function submitTracking() {
+  const isAdmin = me && me.role==='admin';
+  const payload = { keterangan:document.getElementById('t-keterangan').value.trim(), lokasi:document.getElementById('t-lokasi').value.trim() };
+  if (isAdmin) payload.status = document.getElementById('t-status').value;
+  try {
+    const res = await fetch('/api/resi/'+currentTrackResiId+'/tracking', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.ok) { showToast('Status diupdate!'); document.getElementById('t-lokasi').value=''; document.getElementById('t-keterangan').value=''; await loadTracking(currentTrackResiId); await loadResi(); }
+    else showToast(data.msg||'Gagal');
+  } catch { showToast('Gagal terhubung'); }
+}
+function editTrackEntry(trackId, status, lokasi, keterangan) {
+  editingTrackId = trackId;
+  const isAdmin = me && me.role==='admin';
+  const tStatusRow = document.getElementById('t-status-row');
+  if (tStatusRow) tStatusRow.style.display = isAdmin ? 'grid' : 'none';
+  if (isAdmin) document.getElementById('t-status').value = status;
+  document.getElementById('t-lokasi').value = lokasi;
+  document.getElementById('t-keterangan').value = keterangan;
+  document.getElementById('t-form').style.display = 'block';
+  document.getElementById('t-form-title').textContent = 'Edit Entry Timeline';
+  document.getElementById('t-submit-btn').textContent = 'Simpan Edit';
+  document.getElementById('t-submit-btn').onclick = saveTrackEdit;
+  document.getElementById('t-form').scrollIntoView({behavior:'smooth'});
+}
+async function saveTrackEdit() {
+  if (!editingTrackId) return;
+  const isAdmin = me && me.role==='admin';
+  const payload = { keterangan:document.getElementById('t-keterangan').value.trim(), lokasi:document.getElementById('t-lokasi').value.trim() };
+  if (isAdmin) payload.status = document.getElementById('t-status').value;
+  try {
+    const res = await fetch('/api/tracking/'+editingTrackId, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     const data = await res.json();
     if (data.ok) {
-      closeModal('modal-edit');
-      showToast('Resi berhasil diupdate!');
-      await loadResi();
-    } else { showToast(data.msg || 'Gagal update.'); }
-  } catch { showToast('Gagal update.'); }
+      showToast('Entry diupdate!'); editingTrackId=null;
+      document.getElementById('t-lokasi').value=''; document.getElementById('t-keterangan').value='';
+      document.getElementById('t-form-title').textContent = isAdmin?'Update Status Pengiriman':'Tambah Keterangan Timeline';
+      document.getElementById('t-submit-btn').textContent='Simpan';
+      document.getElementById('t-submit-btn').onclick=submitTracking;
+      await loadTracking(currentTrackResiId); await loadResi();
+    } else showToast(data.msg||'Gagal');
+  } catch { showToast('Gagal terhubung'); }
 }
-
-async function hapusResi(id) {
-  if (!confirm('Hapus resi ini? Tindakan ini tidak bisa dibatalkan.')) return;
+async function deleteTrackEntry(trackId) {
+  if (!confirm('Hapus entry ini?')) return;
   try {
-    const res = await fetch('/api/resi/' + id, { method:'DELETE' });
+    const res = await fetch('/api/tracking/'+trackId, { method:'DELETE' });
     const data = await res.json();
-    if (data.ok) { showToast('Resi dihapus.'); allResi = allResi.filter(r => r.id !== id); renderList(); }
-    else showToast(data.msg || 'Gagal hapus.');
-  } catch { showToast('Gagal hapus.'); }
+    if (data.ok) { showToast('Entry dihapus.'); await loadTracking(currentTrackResiId); await loadResi(); }
+    else showToast(data.msg||'Gagal');
+  } catch { showToast('Gagal terhubung'); }
 }
 
-// ── ADMIN USERS ──────────────────────────────────────────────────────────────
+// ── IMPORT EXCEL ──────────────────────────────────────────────────────────────
+function handleFile(file) {
+  if (!file || !file.name.endsWith('.xlsx')) return showToast('Pilih file .xlsx');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+      const norm = rows.map(r => { const o={}; Object.keys(r).forEach(k=>o[k.toUpperCase().trim()]=r[k]); return o; });
+      const valid = norm.filter(r => { const no=String(r['NO RESI']||r['JNE RESI']||'').trim(); const p=String(r['NAMA PENERIMA']||r['RECEIVER']||'').trim(); return no&&p&&p.toUpperCase()!=='TOTAL'; });
+      const skipped = norm.length - valid.length;
+      importRows = valid.map(r => ({
+        noResi: String(r['NO RESI']||r['JNE RESI']||'').trim(),
+        kirimNama: String(r['NAMA PENGIRIM']||'').trim(),
+        kirimAlamat: String(r['ALAMAT PENGIRIM']||'').trim(),
+        kirimHp: String(r['HP PENGIRIM']||'').trim(),
+        terimaNama: String(r['NAMA PENERIMA']||r['RECEIVER']||'').trim(),
+        terimaAlamat: String(r['ALAMAT PENERIMA']||r['DESTINATION']||'').trim(),
+        terimaHp: String(r['HP PENERIMA']||'').trim(),
+        barangDesc: String(r['DESKRIPSI BARANG']||r['PROJECT NAME']||'').trim(),
+        barangBerat: String(r['BERAT']||r['WEIGHT']||'').trim(),
+        barangKoli: String(r['JUMLAH KOLI']||r['QTY']||'1').trim(),
+        barangCatatan: String(r['CATATAN']||'').trim(),
+      }));
+      if (!importRows.length) return showToast('Tidak ada data valid di file ini');
+      renderPreview(importRows, skipped);
+    } catch(err) { showToast('Gagal membaca file: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function renderPreview(rows, skipped) {
+  document.getElementById('preview-count').textContent = rows.length+' baris siap diimport';
+  document.getElementById('preview-skip').textContent = skipped?'('+skipped+' baris dilewati)':'';
+  document.getElementById('preview-tbody').innerHTML = rows.map((r,i) => `
+    <tr style="border-bottom:.5px solid #f0ece4;${i%2===0?'background:#faf9f6':''}">
+      <td style="padding:8px 12px;color:#6b6b85">${i+1}</td>
+      <td style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:11px;color:#b07a10">${r.noResi}</td>
+      <td style="padding:8px 12px">${r.kirimNama||'-'}</td>
+      <td style="padding:8px 12px;font-weight:500">${r.terimaNama}</td>
+      <td style="padding:8px 12px;color:#444;max-width:180px">${r.terimaAlamat}</td>
+      <td style="padding:8px 12px;color:#444">${r.barangDesc}</td>
+      <td style="padding:8px 12px">${r.barangBerat}</td>
+      <td style="padding:8px 12px"><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:11px">Belum disimpan</span></td>
+    </tr>`).join('');
+  document.getElementById('import-preview').style.display='block';
+  document.getElementById('drop-zone').style.display='none';
+}
+async function konfirmasiImport() {
+  let ok=0, fail=0;
+  for (const r of importRows) {
+    try { const res=await fetch('/api/resi',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)}); (await res.json()).ok?ok++:fail++; }
+    catch { fail++; }
+  }
+  showToast(ok+' resi disimpan!'+(fail?' '+fail+' gagal.':''));
+  resetImport();
+}
+function resetImport() {
+  importRows=[];
+  document.getElementById('import-preview').style.display='none';
+  document.getElementById('drop-zone').style.display='block';
+  document.getElementById('file-input').value='';
+  document.getElementById('preview-tbody').innerHTML='';
+}
+function downloadTemplate() {
+  const headers=[['NO RESI','NAMA PENGIRIM','ALAMAT PENGIRIM','HP PENGIRIM','NAMA PENERIMA','ALAMAT PENERIMA','HP PENERIMA','DESKRIPSI BARANG','BERAT','JUMLAH KOLI','CATATAN']];
+  const example=[['RES-20260602-001','Toko Maju Jaya','Jl. Sudirman No.10, Jakarta','08111234567','Budi Santoso','Jl. Merdeka No.5, Surabaya','08222345678','Baju Kaos','2 kg','3','Fragile']];
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([...headers,...example]);
+  ws['!cols']=[22,22,30,16,22,30,16,22,10,12,20].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws,'Template Resi');
+  XLSX.writeFile(wb,'template_resi.xlsx');
+}
+
+// ── ADMIN USERS ───────────────────────────────────────────────────────────────
 async function loadUsers() {
   try {
     const res = await fetch('/api/users');
-    allUsers = await res.json();
-    renderUsers();
-  } catch { document.getElementById('user-list').innerHTML = '<div class="empty-state">Tidak bisa memuat data user.</div>'; }
+    const users = await res.json();
+    renderUsers(users);
+  } catch { document.getElementById('user-list').innerHTML='<div class="empty-state">Tidak bisa memuat data user.</div>'; }
 }
-
-function renderUsers() {
-  document.getElementById('user-count').textContent = allUsers.length + ' user';
-  const pending = allUsers.filter(u => u.status === 'pending');
-  const others = allUsers.filter(u => u.status !== 'pending');
-  const all = [...pending, ...others];
-  document.getElementById('user-list').innerHTML = all.map(u => {
-    const initials = u.nama.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const statusBadge = { pending:'badge-pending', approved:'badge-approved', rejected:'badge-rejected' }[u.status] || '';
-    const isSelf = u.id === me.id;
+function renderUsers(users) {
+  document.getElementById('user-count').textContent = users.length+' user';
+  const pending = users.filter(u=>u.status==='pending');
+  const rest = users.filter(u=>u.status!=='pending');
+  const roleBadge = {admin:'badge-admin',operasional:'badge-operasional',standard:'badge-standard',user:'badge-standard'};
+  const roleLabel = {admin:'Administrator',operasional:'Operasional',standard:'Standard',user:'Standard'};
+  const statusBadge = {pending:'badge-pending',approved:'badge-approved',rejected:'badge-rejected'};
+  document.getElementById('user-list').innerHTML = [...pending,...rest].map(u => {
+    const init = u.nama.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const isSelf = u.id===me.id;
     return `<div class="user-item">
-      <div class="user-avatar">${initials}</div>
+      <div class="user-avatar">${init}</div>
       <div class="user-info">
         <div class="user-name">${u.nama} ${isSelf?'<span style="font-size:11px;color:#a0a0c0">(kamu)</span>':''}</div>
-        <div style="display:flex;gap:6px;align-items:center;margin-top:3px">
+        <div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">
           <span class="user-username">@${u.username}</span>
-          <span class="badge ${statusBadge}" style="font-size:10px;padding:2px 7px">${u.status}</span>
-          <span class="badge ${u.role==='admin'?'badge-admin':'badge-user'}" style="font-size:10px;padding:2px 7px">${u.role}</span>
+          <span class="badge ${statusBadge[u.status]||''}" style="font-size:10px;padding:2px 7px">${u.status}</span>
+          <span class="badge ${roleBadge[u.role]||'badge-standard'}" style="font-size:10px;padding:2px 7px">${roleLabel[u.role]||u.role}</span>
         </div>
         <div style="font-size:11px;color:#a0a0c0;margin-top:2px">Daftar: ${u.createdAt}</div>
       </div>
       <div class="user-actions">
-        ${u.status==='pending' ? `<button class="btn-approve" onclick="setUserStatus(${u.id},'approved')">Setujui</button><button class="btn-reject" onclick="setUserStatus(${u.id},'rejected')">Tolak</button>` : ''}
-        ${u.status==='approved' && !isSelf ? `<button class="btn-reject" onclick="setUserStatus(${u.id},'rejected')">Nonaktifkan</button>` : ''}
-        ${u.status==='rejected' ? `<button class="btn-approve" onclick="setUserStatus(${u.id},'approved')">Aktifkan</button>` : ''}
-        ${!isSelf && u.role!=='admin' ? `<button class="btn-del-user" onclick="deleteUser(${u.id})">Hapus</button>` : ''}
+        ${u.status==='pending'?`<button class="btn-approve" onclick="setStatus(${u.id},'approved')">Setujui</button><button class="btn-reject" onclick="setStatus(${u.id},'rejected')">Tolak</button>`:''}
+        ${u.status==='approved'&&!isSelf?`<button class="btn-reject" onclick="setStatus(${u.id},'rejected')">Nonaktifkan</button>`:''}
+        ${u.status==='rejected'?`<button class="btn-approve" onclick="setStatus(${u.id},'approved')">Aktifkan</button>`:''}
+        ${!isSelf?`<select onchange="setRole(${u.id},this.value)" style="padding:4px 8px;border:.5px solid #ddd8cc;border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a2e;cursor:pointer">
+          <option value="standard" ${(u.role==='standard'||u.role==='user')?'selected':''}>Standard</option>
+          <option value="operasional" ${u.role==='operasional'?'selected':''}>Operasional</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>Administrator</option>
+        </select>`:''}
+        ${!isSelf&&u.role!=='admin'?`<button class="btn-del-user" onclick="deleteUser(${u.id})">Hapus</button>`:''}
       </div>
     </div>`;
-  }).join('') || '<div class="empty-state">Belum ada user.</div>';
+  }).join('')||'<div class="empty-state">Belum ada user.</div>';
 }
-
-async function setUserStatus(id, status) {
-  await fetch('/api/users/' + id + '/status', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status}) });
-  showToast('Status user diupdate.');
-  loadUsers();
+async function setStatus(id, status) {
+  await fetch('/api/users/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+  showToast('Status diupdate.'); loadUsers();
 }
-
+async function setRole(id, role) {
+  const res = await fetch('/api/users/'+id+'/role',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({role})});
+  const data = await res.json();
+  showToast(data.ok?'Role diupdate.':data.msg||'Gagal'); loadUsers();
+}
 async function deleteUser(id) {
   if (!confirm('Hapus user ini?')) return;
-  await fetch('/api/users/' + id, { method:'DELETE' });
-  showToast('User dihapus.');
-  loadUsers();
+  await fetch('/api/users/'+id,{method:'DELETE'});
+  showToast('User dihapus.'); loadUsers();
 }
 
-// ── UTILS ────────────────────────────────────────────────────────────────────
+// ── UTILS ─────────────────────────────────────────────────────────────────────
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
 }
 
-
-// ── IMPORT EXCEL ─────────────────────────────────────────────────────────────
-let importRows = [];
-
-function handleDragOver(e) {
-  e.preventDefault();
-  document.getElementById('drop-zone').style.borderColor = '#a0a0c0';
-}
-
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('drop-zone').style.borderColor = '#ddd8cc';
-  const file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
-}
-
-function excelDateToStr(val) {
-  if (!val) return '';
-  if (typeof val === 'number') {
-    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
-    return d.toLocaleDateString('id-ID');
-  }
-  return String(val);
-}
-
-function handleFile(file) {
-  if (!file || !file.name.endsWith('.xlsx')) {
-    showToast('Pilih file .xlsx'); return;
-  }
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const wb = XLSX.read(e.target.result, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-      // Normalize header keys (uppercase + trim)
-      const normalized = rows.map(r => {
-        const obj = {};
-        Object.keys(r).forEach(k => { obj[k.toUpperCase().trim()] = r[k]; });
-        return obj;
-      });
-
-      // Filter: skip rows tanpa JNE RESI dan bukan baris TOTAL
-      const valid = normalized.filter(r => {
-        const no = String(r['NO RESI'] || r['JNE RESI'] || '').trim();
-        const penerima = String(r['NAMA PENERIMA'] || r['RECEIVER'] || '').trim();
-        return no && no !== '' && penerima !== '' && penerima.toUpperCase() !== 'TOTAL';
-      });
-
-      const skipped = normalized.length - valid.length;
-
-      importRows = valid.map(r => ({
-        noResi:       String(r['NO RESI'] || r['JNE RESI'] || '').trim(),
-        kirimNama:    String(r['NAMA PENGIRIM'] || '').trim(),
-        kirimAlamat:  String(r['ALAMAT PENGIRIM'] || '').trim(),
-        kirimHp:      String(r['HP PENGIRIM'] || '').trim(),
-        terimaNama:   String(r['NAMA PENERIMA'] || r['RECEIVER'] || '').trim(),
-        terimaAlamat: String(r['ALAMAT PENERIMA'] || r['DESTINATION'] || '').trim(),
-        terimaHp:     String(r['HP PENERIMA'] || '').trim(),
-        barangDesc:   String(r['DESKRIPSI BARANG'] || r['PROJECT NAME'] || '').trim(),
-        barangBerat:  String(r['BERAT'] || r['WEIGHT'] || '').trim(),
-        barangKoli:   String(r['JUMLAH KOLI'] || r['QTY'] || '1').trim(),
-        barangCatatan:String(r['CATATAN'] || '').trim(),
-      }));
-
-      if (!importRows.length) { showToast('Tidak ada data valid di file ini.'); return; }
-
-      renderPreview(importRows, skipped);
-    } catch(err) {
-      showToast('Gagal membaca file: ' + err.message);
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function renderPreview(rows, skipped) {
-  document.getElementById('preview-count').textContent = rows.length + ' baris siap diimport';
-  document.getElementById('preview-skip').textContent = skipped ? '(' + skipped + ' baris dilewati)' : '';
-
-  const tbody = document.getElementById('preview-tbody');
-  tbody.innerHTML = rows.map((r, i) => `
-    <tr style="border-bottom:0.5px solid #f0ece4;${i%2===0?'background:#faf9f6':''}">
-      <td style="padding:8px 12px;color:#6b6b85">${i+1}</td>
-      <td style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:11px;color:#b07a10">${r.noResi}</td>
-      <td style="padding:8px 12px;font-weight:500">${r.terimaNama}</td>
-      <td style="padding:8px 12px;color:#444;max-width:200px">${r.terimaAlamat}</td>
-      <td style="padding:8px 12px;color:#444">${r.barangDesc}</td>
-      <td style="padding:8px 12px;text-align:center">${r.barangKoli}</td>
-      <td style="padding:8px 12px">${r.barangBerat}</td>
-      <td style="padding:8px 12px"><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:11px">Belum disimpan</span></td>
-    </tr>
-  `).join('');
-
-  document.getElementById('import-preview').style.display = 'block';
-  document.getElementById('drop-zone').style.display = 'none';
-}
-
-async function konfirmasiImport() {
-  if (!importRows.length) return;
-  const btn = document.getElementById('btn-konfirmasi') || document.querySelector('[onclick="konfirmasiImport()"]');
-  const tanggal = new Date().toLocaleString('id-ID');
-  let berhasil = 0, gagal = 0;
-
-  for (const r of importRows) {
-    try {
-      const payload = {
-        ...r,
-        tanggal: r.tanggalExcel || tanggal,
-        barangCatatan: r.destCode ? 'Dest Code: ' + r.destCode : ''
-      };
-      const res = await fetch('/api/resi', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) berhasil++; else gagal++;
-    } catch { gagal++; }
-  }
-
-  showToast(berhasil + ' resi berhasil disimpan' + (gagal ? ', ' + gagal + ' gagal.' : '!'));
-  resetImport();
-
-  // Update status di tabel
-  const rows = document.querySelectorAll('#preview-tbody tr');
-  rows.forEach(row => {
-    const statusCell = row.querySelector('td:last-child span');
-    if (statusCell) { statusCell.textContent = 'Tersimpan'; statusCell.style.background = '#d1f0d1'; statusCell.style.color = '#1a6e1a'; }
-  });
-}
-
-function resetImport() {
-  importRows = [];
-  document.getElementById('import-preview').style.display = 'none';
-  document.getElementById('drop-zone').style.display = 'block';
-  document.getElementById('file-input').value = '';
-  document.getElementById('preview-tbody').innerHTML = '';
-}
-
-function downloadTemplate() {
-  const headers = [[
-    'NO RESI','NAMA PENGIRIM','ALAMAT PENGIRIM','HP PENGIRIM',
-    'NAMA PENERIMA','ALAMAT PENERIMA','HP PENERIMA',
-    'DESKRIPSI BARANG','BERAT','JUMLAH KOLI','CATATAN'
-  ]];
-  const example = [[
-    'RES-20260602-001','Toko Maju Jaya','Jl. Sudirman No.10, Jakarta','08111234567',
-    'Budi Santoso','Jl. Merdeka No.5, Surabaya','08222345678',
-    'Baju Kaos','2 kg','3','Fragile'
-  ]];
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([...headers, ...example]);
-  ws['!cols'] = [
-    {wch:22},{wch:22},{wch:30},{wch:16},
-    {wch:22},{wch:30},{wch:16},
-    {wch:22},{wch:10},{wch:12},{wch:20}
-  ];
-  // Style header row
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  for (let c = range.s.c; c <= range.e.c; c++) {
-    const cell = XLSX.utils.encode_cell({r:0, c});
-    if (!ws[cell]) continue;
-    ws[cell].s = { font: { bold: true }, fill: { fgColor: { rgb: 'E8D5A3' } } };
-  }
-  XLSX.utils.book_append_sheet(wb, ws, 'Template Resi');
-  XLSX.writeFile(wb, 'template_resi.xlsx');
-}
-
-
-// ── BULK EDIT PENGIRIM ────────────────────────────────────────────────────────
-let selectedIds = new Set();
-let bulkMode = false;
-
-function startBulkMode() {
-  bulkMode = true;
-  selectedIds.clear();
-  // Auto-select resi yang belum ada pengirim
-  const empty = allResi.filter(r => !r.kirimNama);
-  if (empty.length) {
-    empty.forEach(r => selectedIds.add(r.id));
-    showToast(empty.length + ' resi tanpa pengirim dipilih otomatis.');
-  }
-  renderList();
-  updateBulkToolbar();
-}
-
-function toggleSelect(id) {
-  if (selectedIds.has(id)) selectedIds.delete(id);
-  else selectedIds.add(id);
-  updateBulkToolbar();
-  // Update visual tanpa re-render penuh
-  const item = document.getElementById('item-' + id);
-  if (item) {
-    const cb = item.querySelector('input[type=checkbox]');
-    if (cb) cb.checked = selectedIds.has(id);
-    item.style.background = selectedIds.has(id) ? '#f8f6ff' : '';
-    item.style.borderColor = selectedIds.has(id) ? '#1a1a2e' : '';
-  }
-}
-
-function selectAllVisible() {
-  const q = (document.getElementById('search-input').value || '').toLowerCase();
-  allResi.filter(r =>
-    (r.noResi||'').toLowerCase().includes(q) ||
-    (r.kirimNama||'').toLowerCase().includes(q) ||
-    (r.terimaNama||'').toLowerCase().includes(q)
-  ).forEach(r => selectedIds.add(r.id));
-  renderList();
-  updateBulkToolbar();
-}
-
-function clearSelection() {
-  selectedIds.clear();
-  bulkMode = false;
-  renderList();
-  document.getElementById('bulk-toolbar').style.display = 'none';
-}
-
-function updateBulkToolbar() {
-  const toolbar = document.getElementById('bulk-toolbar');
-  if (selectedIds.size > 0 || bulkMode) {
-    toolbar.style.display = 'flex';
-    document.getElementById('bulk-count').textContent = selectedIds.size + ' resi dipilih';
-  } else {
-    toolbar.style.display = 'none';
-  }
-}
-
-function openBulkEdit() {
-  if (!selectedIds.size) { showToast('Pilih minimal 1 resi dulu.'); return; }
-  document.getElementById('bulk-modal-count').textContent = selectedIds.size + ' resi dipilih';
-  document.getElementById('bulk-kirim-nama').value = '';
-  document.getElementById('bulk-kirim-alamat').value = '';
-  document.getElementById('bulk-kirim-hp').value = '';
-  document.getElementById('modal-bulk').classList.add('show');
-}
-
-async function saveBulkEdit() {
-  const kirimNama = document.getElementById('bulk-kirim-nama').value.trim();
-  const kirimAlamat = document.getElementById('bulk-kirim-alamat').value.trim();
-  const kirimHp = document.getElementById('bulk-kirim-hp').value.trim();
-
-  if (!kirimNama && !kirimAlamat && !kirimHp) {
-    showToast('Isi minimal satu kolom pengirim.'); return;
-  }
-
-  const ids = [...selectedIds];
-  let berhasil = 0, gagal = 0;
-
-  for (const id of ids) {
-    const resi = allResi.find(r => r.id === id);
-    if (!resi) continue;
-    const payload = {
-      ...resi,
-      kirimNama: kirimNama || resi.kirimNama,
-      kirimAlamat: kirimAlamat || resi.kirimAlamat,
-      kirimHp: kirimHp || resi.kirimHp,
-    };
-    try {
-      const res = await fetch('/api/resi/' + id, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) berhasil++;
-      else gagal++;
-    } catch { gagal++; }
-  }
-
-  closeModal('modal-bulk');
-  showToast(berhasil + ' resi berhasil diupdate!' + (gagal ? ' ' + gagal + ' gagal.' : ''));
-  selectedIds.clear();
-  bulkMode = false;
-  await loadResi();
-}
-
-// Auto-login jika session masih aktif
-(async () => {
+// Auto-login
+(async()=>{
   try {
-    const res = await fetch('/api/me');
-    const data = await res.json();
-    if (data.ok) { me = data.user; enterApp(); }
+    const res=await fetch('/api/me');
+    const data=await res.json();
+    if(data.ok){me=data.user;enterApp();}
   } catch {}
 })();
 </script>
-<!-- MODAL BULK EDIT PENGIRIM -->
-<div class="modal-overlay" id="modal-bulk">
-  <div class="modal-box" style="width:420px">
-    <div class="modal-top">
-      <span class="modal-top-title">Isi Data Pengirim</span>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="modal-top-no" id="bulk-modal-count"></span>
-        <button class="modal-close" onclick="closeModal('modal-bulk')">Batal</button>
-      </div>
-    </div>
-    <div class="modal-content" style="padding:16px">
-      <p style="font-size:13px;color:#6b6b85;margin-bottom:16px">Data berikut akan diterapkan ke semua resi yang dipilih.</p>
-      <div class="edit-field"><label>Nama pengirim <span style="color:#c04040">*</span></label><input type="text" id="bulk-kirim-nama" placeholder="Nama lengkap / toko" /></div>
-      <div class="edit-field"><label>Alamat pengirim</label><textarea id="bulk-kirim-alamat" placeholder="Jalan, kota, kode pos..."></textarea></div>
-      <div class="edit-field"><label>No. HP pengirim</label><input type="tel" id="bulk-kirim-hp" placeholder="08xx-xxxx-xxxx" /></div>
-      <div style="background:#f4f1ea;border-radius:8px;padding:10px 12px;font-size:12px;color:#6b6b85;margin-top:4px">
-        &#9432; Hanya kolom yang kamu isi yang akan diupdate. Kolom kosong tidak akan mengubah data yang sudah ada.
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-modal-close" onclick="closeModal('modal-bulk')">Batal</button>
-      <button class="btn-print" onclick="saveBulkEdit()">Simpan ke Semua Resi Dipilih</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
