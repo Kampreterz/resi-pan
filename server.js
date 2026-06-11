@@ -77,13 +77,19 @@ async function initDB() {
     CREATE TABLE IF NOT EXISTS resi_tracking (
       id INTEGER PRIMARY KEY, resiId INTEGER,
       status TEXT, keterangan TEXT, lokasi TEXT,
-      waktu TEXT, updatedById INTEGER, updatedByNama TEXT
+      waktu TEXT, updatedById INTEGER, updatedByNama TEXT,
+      photos TEXT DEFAULT '[]'
     );
   `);
   saveDB();
 
-  // Upgrade: tambah kolom status kalau belum ada
+  // Upgrade migrations
   try { db.run("ALTER TABLE resi ADD COLUMN status TEXT DEFAULT 'pending'"); saveDB(); } catch {}
+  try { db.run("ALTER TABLE resi_tracking ADD COLUMN photos TEXT DEFAULT '[]'"); saveDB(); } catch {}
+
+  // Buat folder uploads
+  const UPLOADS_DIR = path.join(DB_DIR, 'uploads');
+  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
   // Admin default
   if (!queryOne('SELECT id FROM users WHERE username = ?', ['admin'])) {
@@ -278,7 +284,10 @@ async function startServer() {
       const me = getSession(req);
       if (!me) return json(res, 401, { ok: false });
       const id = parseInt(p.split('/')[3]);
-      return json(res, 200, queryAll('SELECT * FROM resi_tracking WHERE resiId = ? ORDER BY id ASC', [id]));
+      const rows = queryAll('SELECT * FROM resi_tracking WHERE resiId = ? ORDER BY id ASC', [id]);
+      // Parse photos JSON
+      rows.forEach(r => { try { r.photos = JSON.parse(r.photos||'[]'); } catch { r.photos = []; } });
+      return json(res, 200, rows);
     }
 
     if (req.method === 'POST' && p.match(/^\/api\/resi\/\d+\/tracking$/)) {
@@ -338,6 +347,103 @@ async function startServer() {
       const last = queryOne('SELECT * FROM resi_tracking WHERE resiId=? ORDER BY id DESC LIMIT 1', [track.resiId]);
       run('UPDATE resi SET status=? WHERE id=?', [last ? last.status : 'pending', track.resiId]);
       return json(res, 200, { ok: true });
+    }
+
+    // POST /api/tracking/:id/photos — upload foto
+    if (req.method === 'POST' && p.match(/^\/api\/tracking\/\d+\/photos$/)) {
+      const me = getSession(req);
+      if (!me || me.role === 'standard') return json(res, 403, { ok: false });
+      const trackId = parseInt(p.split('/')[3]);
+      const track = queryOne('SELECT * FROM resi_tracking WHERE id = ?', [trackId]);
+      if (!track) return json(res, 404, { ok: false });
+      const resi = queryOne('SELECT * FROM resi WHERE id = ?', [track.resiId]);
+      if (!resi) return json(res, 404, { ok: false });
+      if (me.role !== 'admin' && resi.createdById !== me.id) return json(res, 403, { ok: false });
+
+      // Parse multipart form data manually
+      const UPLOADS_DIR = path.join(DB_DIR, 'uploads');
+      const contentType = req.headers['content-type'] || '';
+      const boundary = contentType.split('boundary=')[1];
+      if (!boundary) return json(res, 400, { ok: false, msg: 'No boundary' });
+
+      const chunks = [];
+      req.on('data', chunk => chunks.push(chunk));
+      req.on('end', () => {
+        try {
+          const buf = Buffer.concat(chunks);
+          const boundaryBuf = Buffer.from('--' + boundary);
+          const parts = [];
+          let start = 0;
+          while (true) {
+            const idx = buf.indexOf(boundaryBuf, start);
+            if (idx === -1) break;
+            if (start > 0) parts.push(buf.slice(start, idx - 2));
+            start = idx + boundaryBuf.length + 2;
+          }
+
+          const savedPhotos = [];
+          parts.forEach(part => {
+            const headerEnd = part.indexOf('\r\n\r\n');
+            if (headerEnd === -1) return;
+            const header = part.slice(0, headerEnd).toString();
+            const body = part.slice(headerEnd + 4);
+            if (!header.includes('filename=')) return;
+            const filenameMatch = header.match(/filename="(.+?)"/);
+            if (!filenameMatch) return;
+            const ext = path.extname(filenameMatch[1]).toLowerCase();
+            if (!['.jpg','.jpeg','.png','.gif','.webp'].includes(ext)) return;
+            const fname = Date.now() + '_' + Math.random().toString(36).slice(2) + ext;
+            fs.writeFileSync(path.join(UPLOADS_DIR, fname), body);
+            savedPhotos.push('/uploads/' + fname);
+          });
+
+          if (!savedPhotos.length) return json(res, 400, { ok: false, msg: 'Tidak ada foto valid' });
+
+          // Update photos di tracking
+          let existing = [];
+          try { existing = JSON.parse(track.photos || '[]'); } catch {}
+          const updated = [...existing, ...savedPhotos];
+          run('UPDATE resi_tracking SET photos = ? WHERE id = ?', [JSON.stringify(updated), trackId]);
+          return json(res, 200, { ok: true, photos: updated });
+        } catch(e) {
+          return json(res, 500, { ok: false, msg: e.message });
+        }
+      });
+      return;
+    }
+
+    // DELETE /api/tracking/:id/photos — hapus satu foto
+    if (req.method === 'DELETE' && p.match(/^\/api\/tracking\/\d+\/photos$/)) {
+      const me = getSession(req);
+      if (!me || me.role === 'standard') return json(res, 403, { ok: false });
+      const trackId = parseInt(p.split('/')[3]);
+      const track = queryOne('SELECT * FROM resi_tracking WHERE id = ?', [trackId]);
+      if (!track) return json(res, 404, { ok: false });
+      const resi = queryOne('SELECT * FROM resi WHERE id = ?', [track.resiId]);
+      if (me.role !== 'admin' && resi.createdById !== me.id) return json(res, 403, { ok: false });
+      const b = await bodyJSON(req);
+      let photos = [];
+      try { photos = JSON.parse(track.photos || '[]'); } catch {}
+      photos = photos.filter(ph => ph !== b.photo);
+      // Hapus file fisik
+      const UPLOADS_DIR = path.join(DB_DIR, 'uploads');
+      const fname = path.join(UPLOADS_DIR, path.basename(b.photo));
+      try { if (fs.existsSync(fname)) fs.unlinkSync(fname); } catch {}
+      run('UPDATE resi_tracking SET photos = ? WHERE id = ?', [JSON.stringify(photos), trackId]);
+      return json(res, 200, { ok: true, photos });
+    }
+
+    // GET /uploads/:filename — serve foto
+    if (req.method === 'GET' && p.startsWith('/uploads/')) {
+      const UPLOADS_DIR = path.join(DB_DIR, 'uploads');
+      const fname = path.basename(p);
+      const fpath = path.join(UPLOADS_DIR, fname);
+      if (!fs.existsSync(fpath)) { res.writeHead(404); res.end('Not found'); return; }
+      const ext = path.extname(fname).toLowerCase();
+      const mime = { '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.png':'image/png', '.gif':'image/gif', '.webp':'image/webp' };
+      res.writeHead(200, { 'Content-Type': mime[ext] || 'image/jpeg' });
+      fs.createReadStream(fpath).pipe(res);
+      return;
     }
 
     // ── STATIC FILES ──────────────────────────────────────────────────────────

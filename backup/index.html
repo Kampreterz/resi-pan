@@ -843,7 +843,7 @@ function renderTimeline(tracking) {
         </div>
         ${t.lokasi?`<div style="font-size:11px;color:#6b6b85;margin-top:2px">📍 ${t.lokasi}</div>`:''}
         ${t.keterangan?`<div style="font-size:12px;color:#444;margin-top:3px">${t.keterangan}</div>`:''}
-        <div style="font-size:11px;color:#a0a0c0;margin-top:3px">🕐 ${t.waktu} · oleh ${t.updatedByNama}</div>
+        <div style="font-size:11px;color:#a0a0c0;margin-top:3px">${(me.role === 'admin' || me.role === 'operasional')? `🕐 ${t.waktu} · oleh ${t.updatedByNama}`: ''}</div>
       </div>
     </div>`;
   }).join('');
